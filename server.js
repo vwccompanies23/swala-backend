@@ -39,6 +39,113 @@ const pool = new Pool({
 });
 
 /* ===================================
+   CREATE TABLES
+=================================== */
+
+async function createTables() {
+
+  try {
+
+    /* USERS */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        phone TEXT,
+        bio TEXT DEFAULT '',
+        status TEXT DEFAULT 'Offline',
+        profile_picture TEXT,
+        cover_photo TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    /* CHATS */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chats (
+        id SERIAL PRIMARY KEY,
+        is_group BOOLEAN DEFAULT false,
+        group_name TEXT,
+        group_photo TEXT,
+        created_by INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    /* CHAT MEMBERS */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_members (
+        id SERIAL PRIMARY KEY,
+        chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    /* MESSAGES */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        chat_id INTEGER REFERENCES chats(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        message TEXT,
+        message_type TEXT DEFAULT 'text',
+        voice_url TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    /* WORLD POSTS */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS world_posts (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        caption TEXT,
+        media_url TEXT,
+        media_type TEXT,
+        views INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        expires_at TIMESTAMP
+      )
+    `);
+
+    /* NOTIFICATIONS */
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        type TEXT,
+        text TEXT,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+
+    console.log(
+      "Database tables ready 🚀"
+    );
+
+  } catch (err) {
+
+    console.error(
+      "TABLE ERROR:",
+      err
+    );
+
+  }
+
+}
+
+createTables();
+
+/* ===================================
    ONLINE USERS
 =================================== */
 
