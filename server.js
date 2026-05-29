@@ -29,12 +29,159 @@ const io = new Server(server, {
 /* ===================================
    POSTGRES
 =================================== */
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
 });
+
+app.get(
+  "/users/search",
+  async (req, res) => {
+
+    try {
+
+      const search =
+        req.query.search;
+
+      if (!search) {
+
+        return res.json([]);
+
+      }
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            id,
+            username,
+            phone,
+            profile_picture,
+            bio
+          FROM users
+          WHERE
+            username ILIKE $1
+            OR phone ILIKE $1
+          LIMIT 50
+          `,
+          [`%${search}%`]
+        );
+
+      res.json(
+        result.rows
+      );
+
+    } catch (err) {
+
+      console.error(err);
+
+      res.status(500).json({
+        error:
+          "Failed to search users",
+      });
+
+    }
+
+  }
+);
+
+app.post(
+  "/create-chat",
+  async (req, res) => {
+
+    try {
+
+      const {
+        user1,
+        user2,
+      } = req.body;
+
+      const existing =
+        await pool.query(
+          `
+          SELECT c.id
+
+          FROM chats c
+
+          JOIN chat_members m1
+          ON c.id = m1.chat_id
+
+          JOIN chat_members m2
+          ON c.id = m2.chat_id
+
+          WHERE
+            c.is_group = false
+            AND m1.user_id = $1
+            AND m2.user_id = $2
+          `,
+          [user1, user2]
+        );
+
+      if (
+        existing.rows.length
+      ) {
+
+        return res.json({
+          chatId:
+            existing.rows[0].id,
+        });
+
+      }
+
+      const chat =
+        await pool.query(
+          `
+          INSERT INTO chats
+          (is_group)
+
+          VALUES
+          (false)
+
+          RETURNING id
+          `
+        );
+
+      const chatId =
+        chat.rows[0].id;
+
+      await pool.query(
+        `
+        INSERT INTO chat_members
+        (
+          chat_id,
+          user_id
+        )
+        VALUES
+        ($1,$2),
+        ($1,$3)
+        `,
+        [
+          chatId,
+          user1,
+          user2,
+        ]
+      );
+
+      res.json({
+        chatId,
+      });
+
+    } catch (err) {
+
+      console.error(err);
+
+      res.status(500).json({
+        error:
+          "Failed to create chat",
+      });
+
+    }
+
+  }
+);
 
 /* ===================================
    CREATE TABLES
@@ -362,6 +509,7 @@ app.get(
           SELECT
             id,
             username,
+            phone,
             profile_picture,
             bio,
             status,
