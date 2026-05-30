@@ -747,7 +747,7 @@ io.on("connection", (socket) => {
           [
             data.chatId,
             data.senderId,
-            data.message
+            data.message,
           ]
         );
 
