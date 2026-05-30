@@ -778,56 +778,6 @@ io.on("connection", (socket) => {
 
 });
 
-socket.on(
-  "send_message",
-  async (data) => {
-
-    console.log(
-      "MESSAGE RECEIVED:",
-      data
-    );
-
-    try {
-
-      await pool.query(
-        `
-        INSERT INTO messages
-        (
-          chat_id,
-          sender_id,
-          message
-        )
-        VALUES
-        ($1,$2,$3)
-        `,
-        [
-          data.chatId,
-          data.senderId,
-          data.message
-        ]
-      );
-
-      console.log(
-        "MESSAGE SAVED"
-      );
-
-      io.emit(
-        "receive_message",
-        data
-      );
-
-    } catch (err) {
-
-      console.error(
-        "MESSAGE ERROR:",
-        err
-      );
-
-    }
-
-  }
-);
-
 /* ===================================
    SERVER
 =================================== */
