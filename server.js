@@ -562,42 +562,60 @@ app.get(
       const { userId } =
         req.params;
 
-      const result =
-        await pool.query(
-          `
-          SELECT
-            chats.id,
-            chats.is_group,
-            chats.group_name,
-            chats.group_photo,
+    const result = await pool.query(
+  `
+  SELECT
+    chats.id,
+    chats.is_group,
+    chats.group_name,
+    chats.group_photo,
 
-            other_user.id
-              AS other_user_id,
+    other_user.id
+      AS other_user_id,
 
-            other_user.username
-              AS other_username,
+    other_user.username
+      AS other_username,
 
-            other_user.profile_picture
-              AS other_profile_picture
+    other_user.profile_picture
+      AS other_profile_picture,
 
-          FROM chats
+    last_message.message
+      AS last_message,
 
-          JOIN chat_members current_member
-          ON current_member.chat_id = chats.id
+    last_message.created_at
+      AS last_message_time
 
-          LEFT JOIN chat_members other_member
-          ON
-            other_member.chat_id = chats.id
-            AND other_member.user_id != $1
+  FROM chats
 
-          LEFT JOIN users other_user
-          ON other_user.id = other_member.user_id
+  JOIN chat_members current_member
+  ON current_member.chat_id = chats.id
 
-          WHERE
-            current_member.user_id = $1
-        `,
-          [userId]
-        );
+  LEFT JOIN chat_members other_member
+  ON
+    other_member.chat_id = chats.id
+    AND other_member.user_id != $1
+
+  LEFT JOIN users other_user
+  ON other_user.id = other_member.user_id
+
+  LEFT JOIN LATERAL (
+    SELECT
+      message,
+      created_at
+    FROM messages
+    WHERE messages.chat_id = chats.id
+    ORDER BY created_at DESC
+    LIMIT 1
+  ) last_message
+  ON true
+
+  WHERE current_member.user_id = $1
+
+  ORDER BY
+    last_message.created_at DESC NULLS LAST
+  `,
+  [userId]
+);
 
       res.json(
         result.rows
