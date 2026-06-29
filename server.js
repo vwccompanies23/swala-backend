@@ -4,6 +4,13 @@ require('dotenv').config();
 require('./config/db');
 require("./firebase/firebaseAdmin");
 
+const http = require('http');
+const {
+  initializeSocket,
+} = require('./socket/socketServer');
+const socketEvents =
+require('./socket/socketEvents');
+
 const createUsersTable = require('./models/users/userModel');
 const createChatsTable = require('./models/chats/chatModel');
 const createMessagesTable = require('./models/messages/messageModel');
@@ -68,6 +75,15 @@ require('./models/channels/createChannelLikesTable');
 const createChannelFilesTable =
 require('./models/channels/createChannelFilesTable');
 
+const createCallsTable =
+require('./models/calls/createCallsTable');
+const createCallSignalsTable =
+require('./models/calls/createCallSignalsTable');
+const createCallParticipantsTable =
+require('./models/calls/createCallParticipantsTable');
+const createCallHistoryTable =
+require('./models/calls/createCallHistoryTable');
+
 const channelPostRoutes =
 require('./routes/channels/channelPosts');
 const addBusinessCreatorColumns =
@@ -84,6 +100,9 @@ const trendingRoutes =
 require('./routes/trending/trendingRoutes');
 const creatorRoutes =
 require('./routes/creators/creatorRoutes');
+
+const callRoutes =
+require('./routes/calls/callRoutes');
 
 const app = express();
 
@@ -196,6 +215,10 @@ app.use(
   '/api/creators',
   creatorRoutes,
 );
+app.use(
+  '/api/calls',
+  callRoutes,
+);
 
 app.get('/', (req, res) => {
   res.json({
@@ -237,6 +260,11 @@ async function initializeDatabase() {
   await createCommunityInvitationsTable();
   await createCommunityJoinRequestsTable();
 
+  await createCallsTable();
+  await createCallSignalsTable();
+  await createCallParticipantsTable();
+  await createCallHistoryTable();
+
   console.log("✅ Database initialized successfully.");
 
 }
@@ -244,7 +272,15 @@ async function initializeDatabase() {
 initializeDatabase();
 
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Create HTTP Server
+const server = http.createServer(app);
+// Initialize Socket.IO
+const io = initializeSocket(server);
+// Register socket events
+socketEvents(io);
+// Start Server
+server.listen(PORT, () => {
+  console.log(
+    `🚀 Swala Backend running on port ${PORT}`
+  );
 });
