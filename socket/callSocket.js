@@ -6,197 +6,215 @@ const {
 
 function registerCallSocket(io, socket) {
 
-  // Register user
+  /*
+  ==========================================
+  REGISTER USER
+  ==========================================
+  */
+
   socket.on('register', (userId) => {
 
-    registerUser(
-      userId,
-      socket.id,
-    );
+    registerUser(userId, socket.id);
 
-    console.log(
-      `📞 Call user ${userId} registered`
-    );
+    console.log(`📞 Call user ${userId} registered`);
 
   });
 
-  // Call user
-  socket.on('call-user', (data) => {
+  /*
+  ==========================================
+  START CALL
+  ==========================================
+  */
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+  socket.on('start-call', (data) => {
 
-    if (receiverSocket) {
+    const receiverSocket = getSocket(data.receiverId);
 
-      io.to(receiverSocket).emit(
-        'incoming-call',
-        data,
-      );
+    if (!receiverSocket) return;
 
-    }
+    io.to(receiverSocket).emit('incoming-call', {
+
+      callId: data.callId,
+
+      callerId: data.callerId,
+
+      receiverId: data.receiverId,
+
+      callType: data.callType,
+
+      callerName: data.callerName,
+
+      callerUsername: data.callerUsername,
+
+      callerPhoto: data.callerPhoto,
+
+      isGroupCall: data.isGroupCall ?? false,
+
+      groupId: data.groupId ?? null,
+
+      groupName: data.groupName ?? "",
+
+      groupPhoto: data.groupPhoto ?? "",
+
+    });
 
   });
 
-  // Answer call
+  /*
+  ==========================================
+  ANSWER CALL
+  ==========================================
+  */
+
   socket.on('answer-call', (data) => {
 
-    const callerSocket =
-      getSocket(data.callerId);
+    const callerSocket = getSocket(data.callerId);
 
-    if (callerSocket) {
+    if (!callerSocket) return;
 
-      io.to(callerSocket).emit(
-        'call-answered',
-        data,
-      );
-
-    }
+    io.to(callerSocket).emit('call-answered', data);
 
   });
 
-  // Reject call
+  /*
+  ==========================================
+  REJECT CALL
+  ==========================================
+  */
+
   socket.on('reject-call', (data) => {
 
-    const callerSocket =
-      getSocket(data.callerId);
+    const callerSocket = getSocket(data.callerId);
 
-    if (callerSocket) {
+    if (!callerSocket) return;
 
-      io.to(callerSocket).emit(
-        'call-rejected',
-        data,
-      );
-
-    }
+    io.to(callerSocket).emit('call-rejected', data);
 
   });
 
-  // End call
+  /*
+  ==========================================
+  END CALL
+  ==========================================
+  */
+
   socket.on('end-call', (data) => {
 
-    const otherSocket =
-      getSocket(data.otherUserId);
+    const otherSocket = getSocket(data.receiverId);
 
-    if (otherSocket) {
+    if (!otherSocket) return;
 
-      io.to(otherSocket).emit(
-        'call-ended',
-        data,
-      );
-
-    }
+    io.to(otherSocket).emit('call-ended', data);
 
   });
 
-  // WebRTC Offer
+  /*
+  ==========================================
+  WEBRTC OFFER
+  ==========================================
+  */
+
   socket.on('webrtc-offer', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+    const receiverSocket = getSocket(data.receiverId);
 
-    if (receiverSocket) {
+    if (!receiverSocket) return;
 
-      io.to(receiverSocket).emit(
-        'webrtc-offer',
-        data,
-      );
-
-    }
+    io.to(receiverSocket).emit('webrtc-offer', data);
 
   });
 
-  // WebRTC Answer
+  /*
+  ==========================================
+  WEBRTC ANSWER
+  ==========================================
+  */
+
   socket.on('webrtc-answer', (data) => {
 
-    const callerSocket =
-      getSocket(data.callerId);
+    const callerSocket = getSocket(data.callerId);
 
-    if (callerSocket) {
+    if (!callerSocket) return;
 
-      io.to(callerSocket).emit(
-        'webrtc-answer',
-        data,
-      );
-
-    }
+    io.to(callerSocket).emit('webrtc-answer', data);
 
   });
 
-  // ICE Candidate
+  /*
+  ==========================================
+  ICE CANDIDATE
+  ==========================================
+  */
+
   socket.on('ice-candidate', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+    const receiverSocket = getSocket(data.receiverId);
 
-    if (receiverSocket) {
+    if (!receiverSocket) return;
 
-      io.to(receiverSocket).emit(
-        'ice-candidate',
-        data,
-      );
-
-    }
+    io.to(receiverSocket).emit('ice-candidate', data);
 
   });
 
-  // Toggle Mute
+  /*
+  ==========================================
+  MUTE
+  ==========================================
+  */
+
   socket.on('toggle-mute', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+    const receiverSocket = getSocket(data.receiverId);
 
-    if (receiverSocket) {
+    if (!receiverSocket) return;
 
-      io.to(receiverSocket).emit(
-        'toggle-mute',
-        data,
-      );
-
-    }
+    io.to(receiverSocket).emit('toggle-mute', data);
 
   });
 
-  // Toggle Camera
+  /*
+  ==========================================
+  CAMERA
+  ==========================================
+  */
+
   socket.on('toggle-camera', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+    const receiverSocket = getSocket(data.receiverId);
 
-    if (receiverSocket) {
+    if (!receiverSocket) return;
 
-      io.to(receiverSocket).emit(
-        'toggle-camera',
-        data,
-      );
-
-    }
+    io.to(receiverSocket).emit('toggle-camera', data);
 
   });
 
-  // Switch Camera
+  /*
+  ==========================================
+  SWITCH CAMERA
+  ==========================================
+  */
+
   socket.on('switch-camera', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+    const receiverSocket = getSocket(data.receiverId);
 
-    if (receiverSocket) {
+    if (!receiverSocket) return;
 
-      io.to(receiverSocket).emit(
-        'switch-camera',
-        data,
-      );
-
-    }
+    io.to(receiverSocket).emit('switch-camera', data);
 
   });
+
+  /*
+  ==========================================
+  DISCONNECT
+  ==========================================
+  */
 
   socket.on('disconnect', () => {
 
     removeUser(socket.id);
 
-    console.log(
-      `📞 Call socket disconnected ${socket.id}`
-    );
+    console.log(`📞 Call socket disconnected ${socket.id}`);
 
   });
 

@@ -8,14 +8,17 @@ const createCall = async (req, res) => {
       caller_id,
       receiver_id,
       call_type,
+      is_group_call = false,
+      group_id = null,
     } = req.body;
 
-    // Validate required fields
-    if (
-      !caller_id ||
-      !receiver_id ||
-      !call_type
-    ) {
+    /*
+    ==========================================
+    VALIDATION
+    ==========================================
+    */
+
+    if (!caller_id || !call_type) {
 
       return res.status(400).json({
 
@@ -27,20 +30,18 @@ const createCall = async (req, res) => {
 
     }
 
-    // Prevent calling yourself
-    if (caller_id === receiver_id) {
+    if (!is_group_call && !receiver_id) {
 
       return res.status(400).json({
 
         success: false,
 
-        message: 'You cannot call yourself.',
+        message: 'Receiver is required.',
 
       });
 
     }
 
-    // Validate call type
     if (
       !['voice', 'video'].includes(call_type)
     ) {
@@ -55,6 +56,27 @@ const createCall = async (req, res) => {
 
     }
 
+    if (
+      !is_group_call &&
+      caller_id === receiver_id
+    ) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        message: 'You cannot call yourself.',
+
+      });
+
+    }
+
+    /*
+    ==========================================
+    CREATE CALL
+    ==========================================
+    */
+
     const result = await pool.query(
 
       `
@@ -65,7 +87,8 @@ const createCall = async (req, res) => {
         call_type,
         initiated_by
       )
-      VALUES ($1,$2,$3,$1)
+      VALUES
+      ($1,$2,$3,$1)
       RETURNING *;
       `,
 
@@ -77,6 +100,78 @@ const createCall = async (req, res) => {
 
     );
 
+    /*
+    ==========================================
+    GET CALLER
+    ==========================================
+    */
+
+    const callerResult = await pool.query(
+
+      `
+      SELECT
+
+        id,
+
+        full_name,
+
+        username,
+
+        profile_image
+
+      FROM users
+
+      WHERE id = $1
+      `,
+
+      [caller_id],
+
+    );
+
+    /*
+    ==========================================
+    GET RECEIVER
+    ==========================================
+    */
+
+    let receiverResult = {
+
+      rows: [],
+
+    };
+
+    if (!is_group_call) {
+
+      receiverResult = await pool.query(
+
+        `
+        SELECT
+
+          id,
+
+          full_name,
+
+          username,
+
+          profile_image
+
+        FROM users
+
+        WHERE id = $1
+        `,
+
+        [receiver_id],
+
+      );
+
+    }
+
+    /*
+    ==========================================
+    RESPONSE
+    ==========================================
+    */
+
     res.status(201).json({
 
       success: true,
@@ -84,6 +179,14 @@ const createCall = async (req, res) => {
       message: 'Call created successfully.',
 
       call: result.rows[0],
+
+      caller: callerResult.rows[0],
+
+      receiver: receiverResult.rows[0] ?? null,
+
+      isGroupCall: is_group_call,
+
+      groupId: group_id,
 
     });
 

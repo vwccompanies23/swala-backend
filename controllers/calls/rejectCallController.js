@@ -5,7 +5,14 @@ const rejectCall = async (req, res) => {
   try {
 
     const { callId } = req.params;
+
     const { ended_by } = req.body;
+
+    /*
+    ==========================================
+    REJECT CALL
+    ==========================================
+    */
 
     const result = await pool.query(
 
@@ -38,6 +45,12 @@ const rejectCall = async (req, res) => {
       });
 
     }
+
+    /*
+    ==========================================
+    SAVE TO CALL HISTORY
+    ==========================================
+    */
 
     await pool.query(
 
@@ -78,6 +91,68 @@ const rejectCall = async (req, res) => {
 
     );
 
+    /*
+    ==========================================
+    GET CALLER
+    ==========================================
+    */
+
+    const caller = await pool.query(
+
+      `
+      SELECT
+
+        id,
+
+        full_name,
+
+        username,
+
+        profile_image
+
+      FROM users
+
+      WHERE id = $1
+      `,
+
+      [result.rows[0].caller_id],
+
+    );
+
+    /*
+    ==========================================
+    GET RECEIVER
+    ==========================================
+    */
+
+    const receiver = await pool.query(
+
+      `
+      SELECT
+
+        id,
+
+        full_name,
+
+        username,
+
+        profile_image
+
+      FROM users
+
+      WHERE id = $1
+      `,
+
+      [result.rows[0].receiver_id],
+
+    );
+
+    /*
+    ==========================================
+    RESPONSE
+    ==========================================
+    */
+
     res.status(200).json({
 
       success: true,
@@ -85,6 +160,10 @@ const rejectCall = async (req, res) => {
       message: 'Call rejected successfully.',
 
       call: result.rows[0],
+
+      caller: caller.rows[0],
+
+      receiver: receiver.rows[0],
 
     });
 
