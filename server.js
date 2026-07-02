@@ -103,6 +103,8 @@ require('./routes/creators/creatorRoutes');
 
 const callRoutes =
 require('./routes/calls/callRoutes');
+const broadcastRoutes =
+require('./routes/broadcasts/broadcastRoutes');
 
 const app = express();
 
@@ -144,6 +146,27 @@ const createCommunityInvitationsTable =
 require('./models/communities/tables/createCommunityInvitationsTable');
 const createCommunityJoinRequestsTable =
 require('./models/communities/tables/createCommunityJoinRequestsTable');
+
+const createBroadcastsTable =
+require('./models/broadcasts/createBroadcastsTable');
+const createBroadcastMembersTable =
+require('./models/broadcasts/createBroadcastMembersTable');
+const createBroadcastMessagesTable =
+require('./models/broadcasts/createBroadcastMessagesTable');
+const createBroadcastMediaTable =
+require('./models/broadcasts/createBroadcastMediaTable');
+const createBroadcastFilesTable =
+require('./models/broadcasts/createBroadcastFilesTable');
+const createBroadcastLinksTable =
+require('./models/broadcasts/createBroadcastLinksTable');
+const createBroadcastNotificationSettingsTable =
+require('./models/broadcasts/createBroadcastNotificationSettingsTable');
+const createBroadcastWallpaperTable =
+require('./models/broadcasts/createBroadcastWallpaperTable');
+const createBroadcastReadsTable =
+require('./models/broadcasts/createBroadcastReadsTable');
+const createBroadcastReactionsTable =
+require('./models/broadcasts/createBroadcastReactionsTable');
 
 require('./controllers/businesses/enableBusinessModeController');
 require('./controllers/businesses/disableBusinessModeController');
@@ -219,6 +242,10 @@ app.use(
   '/api/calls',
   callRoutes,
 );
+app.use(
+  '/api/broadcast',
+  broadcastRoutes,
+);
 
 app.get('/', (req, res) => {
   res.json({
@@ -264,6 +291,17 @@ async function initializeDatabase() {
   await createCallSignalsTable();
   await createCallParticipantsTable();
   await createCallHistoryTable();
+
+  await createBroadcastsTable();
+  await createBroadcastMembersTable();
+  await createBroadcastMessagesTable();
+  await createBroadcastMediaTable();
+  await createBroadcastFilesTable();
+  await createBroadcastLinksTable();
+  await createBroadcastNotificationSettingsTable();
+  await createBroadcastWallpaperTable();
+  await createBroadcastReadsTable();
+  await createBroadcastReactionsTable();
 
   console.log("✅ Database initialized successfully.");
 

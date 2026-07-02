@@ -9,6 +9,10 @@ require('./notificationSocket');
 
 const registerPresenceSocket =
 require('./presenceSocket');
+const registerProfileSocket =
+require('./profileSocket');
+const registerBroadcastSocket =
+require('./broadcastSocket');
 
 function socketEvents(io) {
 
@@ -34,6 +38,14 @@ function socketEvents(io) {
     );
 
     registerPresenceSocket(
+      io,
+      socket,
+    );
+    registerProfileSocket(
+      io,
+      socket,
+    );
+    registerBroadcastSocket(
       io,
       socket,
     );

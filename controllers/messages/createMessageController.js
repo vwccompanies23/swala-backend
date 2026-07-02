@@ -21,24 +21,11 @@ const createMessage = async (req, res) => {
     if (!sender_id || !receiver_id || !message) {
 
       return res.status(400).json({
-
         success: false,
-
         error: 'Missing required fields',
-
       });
 
     }
-
-    console.log('📨 New message request:', {
-
-      sender_id,
-
-      receiver_id,
-
-      message,
-
-    });
 
     // Find existing chat
 
@@ -69,9 +56,7 @@ const createMessage = async (req, res) => {
 
     let chatId;
 
-    if (chat.rows.length === 0) {
-
-      console.log('🆕 Creating new chat');
+    if (chat.rows.length == 0) {
 
       const newChat = await pool.query(
 
@@ -104,9 +89,9 @@ const createMessage = async (req, res) => {
 
     }
 
-    console.log('💬 Chat ID:', chatId);
+    // Save message
 
-    const savedMessage = await pool.query(
+    const inserted = await pool.query(
 
       `
       INSERT INTO messages
@@ -132,36 +117,59 @@ const createMessage = async (req, res) => {
 
     );
 
-    console.log('✅ Message saved');
+    // Return complete message
 
-    // Send realtime message
+    const fullMessage = await pool.query(
+
+      `
+      SELECT
+
+        m.id,
+
+        m.chat_id,
+
+        m.sender_id,
+
+        u.full_name AS sender_name,
+
+        m.message,
+
+        m.is_read,
+
+        m.created_at
+
+      FROM messages m
+
+      JOIN users u
+
+      ON u.id = m.sender_id
+
+      WHERE m.id = $1
+      `,
+
+      [
+        inserted.rows[0].id,
+      ],
+
+    );
+
+    const messageData =
+        fullMessage.rows[0];
+
+    // Socket
 
     emitMessage(
 
       receiver_id,
 
       {
-        ...savedMessage.rows[0],
+        ...messageData,
         receiver_id,
       },
 
     );
 
-    console.log('📤 Realtime message emitted');
-
-    const sender = await pool.query(
-
-      `
-      SELECT full_name
-      FROM users
-      WHERE id = $1
-      `,
-
-      [
-        sender_id,
-      ],
-
-    );
+    // Notification
 
     try {
 
@@ -169,31 +177,26 @@ const createMessage = async (req, res) => {
 
         userId: receiver_id,
 
-        title: 'New Message',
+        title: "New Message",
 
-        body: `${sender.rows[0].full_name}: ${message}`,
+        body:
+            "${messageData.sender_name}: ${message}",
 
         data: {
 
-          chatId: chatId.toString(),
+          chatId:
+          chatId.toString(),
 
-          senderId: sender_id.toString(),
+          senderId:
+          sender_id.toString(),
 
         },
 
       });
 
-      console.log('🔔 Notification sent');
+    } catch (e) {
 
-    } catch (notificationError) {
-
-      console.error(
-
-        '⚠️ Notification failed:',
-
-        notificationError,
-
-      );
+      console.error(e);
 
     }
 
@@ -201,13 +204,11 @@ const createMessage = async (req, res) => {
 
       success: true,
 
-      message: savedMessage.rows[0],
+      message: messageData,
 
     });
 
   } catch (err) {
-
-    console.error('❌ Create Message Error');
 
     console.error(err);
 

@@ -7,20 +7,44 @@ require('../../controllers/searchs/searchUsersController');
 
 const getUser =
 require('../../controllers/users/getUserController');
+
 const getAllUsers =
 require('../../controllers/users/getAllUsersController');
+
+const getAvailableUsers =
+require('../../controllers/users/getAvailableUsersController');
+
 const saveFcmToken =
 require('../../controllers/users/saveFcmTokenController');
 
-router.get('/', getAllUsers);
+// Get all users
+router.get(
+  '/',
+  getAllUsers,
+);
 
-router.get('/search', searchUsers);
+// Search users
+router.get(
+  '/search',
+  searchUsers,
+);
 
+// Get available users (excluding current user)
+router.get(
+  '/list/:userId',
+  getAvailableUsers,
+);
+
+// Save FCM token
 router.post(
   '/save-fcm-token',
   saveFcmToken,
 );
 
-router.get('/:id', getUser);
+// Get one user
+router.get(
+  '/:id',
+  getUser,
+);
 
 module.exports = router;

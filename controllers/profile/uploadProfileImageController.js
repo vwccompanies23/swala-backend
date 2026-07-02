@@ -1,54 +1,97 @@
-const pool =
-require('../../config/db');
+const pool = require('../../config/db');
 
-const uploadProfileImage =
-async (req, res) => {
+const uploadProfileImage = async (req, res) => {
 
   try {
 
-    const userId =
-    req.body.userId;
+    const { userId } = req.body;
+
+    if (!userId) {
+
+      return res.status(400).json({
+
+        success: false,
+
+        error: 'User ID is required',
+
+      });
+
+    }
 
     if (!req.file) {
 
       return res.status(400).json({
+
         success: false,
+
         error: 'No image uploaded',
+
       });
+
     }
 
     const imagePath =
-    `/uploads/profiles/${req.file.filename}`;
+      `/uploads/profiles/${req.file.filename}`;
 
-    await pool.query(
+    const result = await pool.query(
+
       `
       UPDATE users
       SET profile_image = $1
       WHERE id = $2
+      RETURNING
+        id,
+        full_name,
+        username,
+        phone,
+        bio,
+        profile_image
       `,
+
       [
         imagePath,
         userId,
-      ]
+      ],
+
     );
 
-    res.json({
+    if (result.rows.length === 0) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        error: 'User not found',
+
+      });
+
+    }
+
+    return res.json({
+
       success: true,
-      profileImage:
-      imagePath,
+
+      message: 'Profile image updated successfully.',
+
+      user: result.rows[0],
+
     });
 
   } catch (error) {
 
+    console.error('Upload Profile Image Error');
     console.error(error);
 
-    res.status(500).json({
+    return res.status(500).json({
+
       success: false,
-      error:
-      error.message,
+
+      error: error.message,
+
     });
+
   }
+
 };
 
-module.exports =
-uploadProfileImage;
+module.exports = uploadProfileImage;

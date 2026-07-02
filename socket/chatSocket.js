@@ -37,38 +37,56 @@ function registerChatSocket(io, socket) {
   });
 
   // Typing
-  socket.on('typing', (data) => {
+socket.on('typing', (data) => {
 
-    const receiverSocket =
+  const receiverSocket =
       getSocket(data.receiverId);
 
-    if (receiverSocket) {
+  if (receiverSocket) {
 
-      io.to(receiverSocket).emit(
-        'user-typing',
-        data,
-      );
+    io.to(receiverSocket).emit(
 
-    }
+      'user-typing',
 
-  });
+      {
+
+        senderId: data.senderId,
+
+        receiverId: data.receiverId,
+
+      },
+
+    );
+
+  }
+
+});
 
   // Stop typing
-  socket.on('stop-typing', (data) => {
+ socket.on('stop-typing', (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+   const receiverSocket =
+       getSocket(data.receiverId);
 
-    if (receiverSocket) {
+   if (receiverSocket) {
 
-      io.to(receiverSocket).emit(
-        'user-stop-typing',
-        data,
-      );
+     io.to(receiverSocket).emit(
 
-    }
+       'user-stop-typing',
 
-  });
+       {
+
+         senderId: data.senderId,
+
+         receiverId: data.receiverId,
+
+       },
+
+     );
+
+   }
+
+ });
 
   // Message delivered
   socket.on('message-delivered', (data) => {
