@@ -30,8 +30,7 @@ const uploadProfileImage = async (req, res) => {
 
     }
 
-    const imagePath =
-      `/uploads/profiles/${req.file.filename}`;
+   const imagePath = req.file.path;
 
     const result = await pool.query(
 

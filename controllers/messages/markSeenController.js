@@ -1,61 +1,120 @@
-const pool = require('../../config/db');
+const pool = require("../../config/db");
 
-const {
-  emitSeen,
-} = require('../../socket/messageEmitter');
+const eventDispatcher =
+require("../../realtime/eventDispatcher");
 
 const markSeen = async (req, res) => {
 
-  try {
+    try {
 
-    const {
-      messageId,
-      senderId,
-    } = req.body;
+        const {
 
-    await pool.query(
+            messageId,
 
-      `
-      UPDATE messages
-      SET is_read = TRUE
-      WHERE id = $1
-      `,
+            senderId,
 
-      [
-        messageId,
-      ],
+        } = req.body;
 
-    );
+        if (
 
-    emitSeen(
+            !messageId ||
 
-      senderId,
+            !senderId
 
-      {
-        messageId,
-      },
+        ) {
 
-    );
+            return res.status(400).json({
 
-    return res.json({
+                success: false,
 
-      success: true,
+                error: "Missing required fields",
 
-    });
+            });
 
-  } catch (error) {
+        }
 
-    console.error(error);
+        //////////////////////////////////////////////////////
+        // UPDATE DATABASE
+        //////////////////////////////////////////////////////
 
-    return res.status(500).json({
+        const result = await pool.query(
 
-      success: false,
+            `
+            UPDATE messages
+            SET
+                is_read = TRUE
+            WHERE
+                id = $1
+            RETURNING *
+            `,
 
-      error: error.message,
+            [
 
-    });
+                messageId,
 
-  }
+            ],
+
+        );
+
+        if (result.rows.length === 0) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                error: "Message not found",
+
+            });
+
+        }
+
+        //////////////////////////////////////////////////////
+        // REALTIME UPDATE
+        //////////////////////////////////////////////////////
+
+        eventDispatcher.notification({
+
+            userId: senderId,
+
+            event: "message-seen",
+
+            payload: {
+
+                messageId,
+
+                seen: true,
+
+            },
+
+        });
+
+        //////////////////////////////////////////////////////
+        // RESPONSE
+        //////////////////////////////////////////////////////
+
+        return res.json({
+
+            success: true,
+
+            messageId,
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+
+            success: false,
+
+            error: error.message,
+
+        });
+
+    }
 
 };
 

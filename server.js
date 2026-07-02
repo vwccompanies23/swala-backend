@@ -128,6 +128,13 @@ app.use('/api/community-rules', communityRuleRoutes);
 app.use('/api/community-members', communityMemberRoutes);
 app.use('/api/community-invitations', communityInvitationRoutes);
 
+app.use(require("./middleware/errorMiddleware"));
+app.use(
+
+require("./middleware/rateLimiter"),
+
+);
+
 const createCommunitiesTable =
 require('./models/communities/tables/createCommunitiesTable');
 const createCommunityMembersTable =
@@ -313,9 +320,13 @@ const PORT = process.env.PORT || 5000;
 // Create HTTP Server
 const server = http.createServer(app);
 // Initialize Socket.IO
+const realtimeService =
+require("./realtime/realtimeService");
+
+// Initialize Socket.IO
 const io = initializeSocket(server);
-// Register socket events
-socketEvents(io);
+// Initialize Swala Realtime Engine
+realtimeService.initialize(io);
 // Start Server
 server.listen(PORT, () => {
   console.log(

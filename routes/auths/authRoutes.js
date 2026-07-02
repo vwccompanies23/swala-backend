@@ -1,13 +1,49 @@
-const express = require('express');
+const express = require("express");
+
 const router = express.Router();
 
-const registerUser =
-require('../../controllers/registers/registerController');
+const loginController =
+require("../../controllers/auth/loginController");
 
-const loginUser =
-require('../../controllers/logins/loginController');
+const registerController =
+require("../../controllers/auth/registerController");
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+const refreshTokenController =
+require("../../controllers/auth/refreshTokenController");
+
+const logoutController =
+require("../../controllers/auth/logoutController");
+
+const authenticateToken =
+require("../../middleware/authenticateToken");
+
+const meController =
+require("../../controllers/auth/meController");
+
+router.get(
+    "/me",
+    authenticateToken,
+    meController,
+);
+
+router.post(
+    "/login",
+    loginController,
+);
+
+router.post(
+    "/register",
+    registerController,
+);
+
+router.post(
+    "/refresh",
+    refreshTokenController,
+);
+
+router.post(
+    "/logout",
+    logoutController,
+);
 
 module.exports = router;

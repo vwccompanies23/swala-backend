@@ -1,65 +1,74 @@
 const registerCallSocket =
-require('./callSocket');
+require("./callSocket");
 
 const registerChatSocket =
-require('./chatSocket');
+require("./chatSocket");
 
 const registerNotificationSocket =
-require('./notificationSocket');
+require("./notificationSocket");
 
 const registerPresenceSocket =
-require('./presenceSocket');
+require("./presenceSocket");
+
 const registerProfileSocket =
-require('./profileSocket');
+require("./profileSocket");
+
 const registerBroadcastSocket =
-require('./broadcastSocket');
+require("./broadcastSocket");
+
+const {
+    removeUser,
+} = require("./userRegistry");
 
 function socketEvents(io) {
 
-  io.on('connection', (socket) => {
+    io.on("connection", (socket) => {
 
-    console.log(
-      `🟢 Socket Connected: ${socket.id}`
-    );
+        console.log(
+            `🟢 Socket Connected: ${socket.id}`,
+        );
 
-    registerCallSocket(
-      io,
-      socket,
-    );
+        registerCallSocket(
+            io,
+            socket,
+        );
 
-    registerChatSocket(
-      io,
-      socket,
-    );
+        registerChatSocket(
+            io,
+            socket,
+        );
 
-    registerNotificationSocket(
-      io,
-      socket,
-    );
+        registerNotificationSocket(
+            io,
+            socket,
+        );
 
-    registerPresenceSocket(
-      io,
-      socket,
-    );
-    registerProfileSocket(
-      io,
-      socket,
-    );
-    registerBroadcastSocket(
-      io,
-      socket,
-    );
+        registerPresenceSocket(
+            io,
+            socket,
+        );
 
+        registerProfileSocket(
+            io,
+            socket,
+        );
 
-    socket.on('disconnect', () => {
+        registerBroadcastSocket(
+            io,
+            socket,
+        );
 
-      console.log(
-        `🔴 Socket Disconnected: ${socket.id}`
-      );
+        socket.on("disconnect", () => {
+
+            removeUser(socket.id);
+
+            console.log(
+                `🔴 Socket Disconnected: ${socket.id}`,
+            );
+
+        });
 
     });
-
-  });
 
 }
 

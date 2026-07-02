@@ -1,28 +1,20 @@
-const multer = require('multer');
-const path = require('path');
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
 
-const storage = multer.diskStorage({
-
-  destination: (req, file, cb) => {
-
-    cb(
-      null,
-      'uploads/profiles'
-    );
-  },
-
-  filename: (req, file, cb) => {
-
-    cb(
-      null,
-      Date.now() +
-      path.extname(file.originalname)
-    );
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "swala/profile-images",
+    allowed_formats: [
+      "jpg",
+      "jpeg",
+      "png",
+      "webp",
+    ],
   },
 });
 
-const upload = multer({
+module.exports = multer({
   storage,
 });
-
-module.exports = upload;
