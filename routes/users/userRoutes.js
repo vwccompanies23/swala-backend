@@ -16,6 +16,7 @@ require('../../controllers/users/getAvailableUsersController');
 
 const saveFcmToken =
 require('../../controllers/users/saveFcmTokenController');
+const updateFcmToken = require("../../controllers/users/updateFcmTokenController");
 
 // Get all users
 router.get(
@@ -45,6 +46,10 @@ router.post(
 router.get(
   '/:id',
   getUser,
+);
+router.post(
+  "/update-fcm-token",
+  updateFcmToken,
 );
 
 module.exports = router;
