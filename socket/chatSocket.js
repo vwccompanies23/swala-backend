@@ -19,22 +19,30 @@ function registerChatSocket(io, socket) {
 
   });
 
-  // Send message
-  socket.on('send-message', (data) => {
+ // Send message
+ socket.on("send-message", (data) => {
 
-    const receiverSocket =
-      getSocket(data.receiverId);
+   console.log("========== SEND MESSAGE ==========");
+   console.log(data);
 
-    if (receiverSocket) {
+   const receiverSocket = getSocket(data.receiverId);
 
-      io.to(receiverSocket).emit(
-        'receive-message',
-        data,
-      );
+   if (!receiverSocket) {
 
-    }
+     console.log(`❌ Receiver ${data.receiverId} is offline`);
 
-  });
+     return;
+
+   }
+
+   io.to(receiverSocket).emit(
+     "receive-message",
+     data.message,
+   );
+
+   console.log(`✅ Message sent to ${data.receiverId}`);
+
+ });
 
   // Typing
 socket.on('typing', (data) => {
