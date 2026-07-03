@@ -5,6 +5,8 @@ const {
 
 function registerChatSocket(io, socket) {
 
+  console.log("🔥 registerChatSocket attached to", socket.id);
+
   // Register chat user
   socket.on('register-chat', (userId) => {
 
