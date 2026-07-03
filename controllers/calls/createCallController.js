@@ -1,4 +1,4 @@
-const pool = require('../../config/db');
+const pool = require("../../config/db");
 
 const createCall = async (req, res) => {
 
@@ -21,11 +21,8 @@ const createCall = async (req, res) => {
     if (!caller_id || !call_type) {
 
       return res.status(400).json({
-
         success: false,
-
-        message: 'Missing required fields.',
-
+        message: "Missing required fields.",
       });
 
     }
@@ -33,43 +30,31 @@ const createCall = async (req, res) => {
     if (!is_group_call && !receiver_id) {
 
       return res.status(400).json({
-
         success: false,
-
-        message: 'Receiver is required.',
-
+        message: "Receiver is required.",
       });
 
     }
 
-    if (
-      !['voice', 'video'].includes(call_type)
-    ) {
+    if (!["voice", "video"].includes(call_type)) {
 
       return res.status(400).json({
-
         success: false,
-
-        message: 'Invalid call type.',
-
+        message: "Invalid call type.",
       });
 
     }
 
-    if (
-      !is_group_call &&
-      caller_id === receiver_id
-    ) {
+    if (!is_group_call && caller_id === receiver_id) {
 
       return res.status(400).json({
-
         success: false,
-
-        message: 'You cannot call yourself.',
-
+        message: "You cannot call yourself.",
       });
 
     }
+
+    console.log(`📞 Creating ${call_type} call`);
 
     /*
     ==========================================
@@ -93,6 +78,44 @@ const createCall = async (req, res) => {
       `,
 
       [
+
+        caller_id,
+
+        receiver_id,
+
+        call_type,
+
+      ],
+
+    );
+    /*
+    ==========================================
+    CREATE CALL HISTORY
+    ==========================================
+    */
+
+    await pool.query(
+
+      `
+      INSERT INTO call_history
+      (
+        call_id,
+        caller_id,
+        receiver_id,
+        call_type,
+        status,
+        duration,
+        initiated_by,
+        started_at
+      )
+      VALUES
+      (
+        $1,$2,$3,$4,'ringing',0,$2,CURRENT_TIMESTAMP
+      );
+      `,
+
+      [
+        result.rows[0].id,
         caller_id,
         receiver_id,
         call_type,
@@ -110,21 +133,19 @@ const createCall = async (req, res) => {
 
       `
       SELECT
-
         id,
-
         full_name,
-
         username,
-
         profile_image
-
       FROM users
-
-      WHERE id = $1
+      WHERE id=$1;
       `,
 
-      [caller_id],
+      [
+
+        caller_id,
+
+      ],
 
     );
 
@@ -146,43 +167,55 @@ const createCall = async (req, res) => {
 
         `
         SELECT
-
           id,
-
           full_name,
-
           username,
-
           profile_image
-
         FROM users
-
-        WHERE id = $1
+        WHERE id=$1;
         `,
 
-        [receiver_id],
+        [
+
+          receiver_id,
+
+        ],
 
       );
 
     }
 
-    /*
-    ==========================================
-    RESPONSE
-    ==========================================
-    */
+    console.log("✅ Call created");
 
     res.status(201).json({
 
       success: true,
 
-      message: 'Call created successfully.',
+      message: "Call created successfully.",
 
       call: result.rows[0],
 
       caller: callerResult.rows[0],
 
       receiver: receiverResult.rows[0] ?? null,
+
+      callerName:
+          callerResult.rows[0]?.full_name ?? "",
+
+      callerUsername:
+          callerResult.rows[0]?.username ?? "",
+
+      callerPhoto:
+          callerResult.rows[0]?.profile_image ?? "",
+
+      receiverName:
+          receiverResult.rows[0]?.full_name ?? "",
+
+      receiverUsername:
+          receiverResult.rows[0]?.username ?? "",
+
+      receiverPhoto:
+          receiverResult.rows[0]?.profile_image ?? "",
 
       isGroupCall: is_group_call,
 
@@ -192,13 +225,15 @@ const createCall = async (req, res) => {
 
   } catch (error) {
 
+    console.error("❌ Create Call Error");
+
     console.error(error);
 
     res.status(500).json({
 
       success: false,
 
-      message: 'Failed to create call.',
+      message: "Failed to create call.",
 
       error: error.message,
 

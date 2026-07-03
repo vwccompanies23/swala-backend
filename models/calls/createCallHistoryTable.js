@@ -32,6 +32,7 @@ async function createCallHistoryTable() {
         NOT NULL
         CHECK (
           status IN (
+            'ringing'
             'accepted',
             'rejected',
             'missed',

@@ -16,7 +16,7 @@ function registerCallSocket(io, socket) {
 
     registerUser(userId, socket.id);
 
-    console.log(`📞 Call user ${userId} registered`);
+    console.log(`📞 User ${userId} registered (${socket.id})`);
 
   });
 
@@ -28,40 +28,48 @@ function registerCallSocket(io, socket) {
 
   socket.on("call-user", (data) => {
 
-    console.log("========== NEW CALL ==========");
+    console.log("========== CALL USER ==========");
     console.log(data);
 
     const receiverSocket = getSocket(data.receiverId);
 
-    console.log("Receiver socket:", receiverSocket);
-
     if (!receiverSocket) {
 
-      console.log("❌ Receiver NOT online");
+      console.log(`❌ Receiver ${data.receiverId} is offline`);
 
       return;
 
     }
 
-    console.log(
-      `📞 Incoming call: ${data.callerId} -> ${data.receiverId}`
-    );
-
-    console.log("✅ Sending incoming-call");
-
     io.to(receiverSocket).emit("incoming-call", {
+
       callId: data.callId,
+
       callerId: data.callerId,
+
       receiverId: data.receiverId,
+
       callType: data.callType,
-      callerName: data.callerName,
-      callerUsername: data.callerUsername,
-      callerPhoto: data.callerPhoto,
+
+      callerName: data.callerName ?? "",
+
+      callerUsername: data.callerUsername ?? "",
+
+      callerPhoto: data.callerPhoto ?? "",
+
       isGroupCall: data.isGroupCall ?? false,
+
       groupId: data.groupId ?? null,
+
       groupName: data.groupName ?? "",
+
       groupPhoto: data.groupPhoto ?? "",
+
     });
+
+    console.log(
+      `✅ Incoming call sent to ${data.receiverId}`
+    );
 
   });
 
@@ -73,11 +81,22 @@ function registerCallSocket(io, socket) {
 
   socket.on("answer-call", (data) => {
 
+    console.log("========== ANSWER CALL ==========");
+    console.log(data);
+
     const callerSocket = getSocket(data.callerId);
 
-    if (!callerSocket) return;
+    if (!callerSocket) {
+
+      console.log("❌ Caller socket not found");
+
+      return;
+
+    }
 
     io.to(callerSocket).emit("call-answered", data);
+
+    console.log("✅ Caller notified");
 
   });
 
@@ -89,11 +108,22 @@ function registerCallSocket(io, socket) {
 
   socket.on("reject-call", (data) => {
 
+    console.log("========== REJECT CALL ==========");
+    console.log(data);
+
     const callerSocket = getSocket(data.callerId);
 
-    if (!callerSocket) return;
+    if (!callerSocket) {
+
+      console.log("❌ Caller socket not found");
+
+      return;
+
+    }
 
     io.to(callerSocket).emit("call-rejected", data);
+
+    console.log("✅ Caller notified");
 
   });
 
@@ -105,19 +135,28 @@ function registerCallSocket(io, socket) {
 
   socket.on("end-call", (data) => {
 
-    const otherSocket = getSocket(data.receiverId);
+    console.log("========== END CALL ==========");
+    console.log(data);
 
-    if (!otherSocket) {
+    const callerSocket = getSocket(data.callerId);
 
-      console.log("❌ Receiver not found for end-call");
+    const receiverSocket = getSocket(data.receiverId);
 
-      return;
+    if (callerSocket) {
+
+      io.to(callerSocket).emit("call-ended", data);
+
+      console.log(`📴 Sent call-ended to caller ${data.callerId}`);
 
     }
 
-    console.log(`📴 Ending call for ${data.receiverId}`);
+    if (receiverSocket) {
 
-    io.to(otherSocket).emit("call-ended", data);
+      io.to(receiverSocket).emit("call-ended", data);
+
+      console.log(`📴 Sent call-ended to receiver ${data.receiverId}`);
+
+    }
 
   });
 
@@ -171,7 +210,7 @@ function registerCallSocket(io, socket) {
 
   /*
   ==========================================
-  MUTE
+  TOGGLE MUTE
   ==========================================
   */
 
@@ -187,7 +226,7 @@ function registerCallSocket(io, socket) {
 
   /*
   ==========================================
-  CAMERA
+  TOGGLE CAMERA
   ==========================================
   */
 
@@ -227,7 +266,7 @@ function registerCallSocket(io, socket) {
 
     removeUser(socket.id);
 
-    console.log(`📞 Call socket disconnected ${socket.id}`);
+    console.log(`🔴 Call socket disconnected ${socket.id}`);
 
   });
 

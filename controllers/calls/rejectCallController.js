@@ -1,12 +1,60 @@
-const pool = require('../../config/db');
+const pool = require("../../config/db");
 
 const rejectCall = async (req, res) => {
 
   try {
 
     const { callId } = req.params;
-
     const { ended_by } = req.body;
+
+    console.log(`📞 Rejecting call ${callId}`);
+
+    /*
+    ==========================================
+    CHECK CALL
+    ==========================================
+    */
+
+    const existing = await pool.query(
+
+      `
+      SELECT *
+      FROM calls
+      WHERE id = $1;
+      `,
+
+      [callId],
+
+    );
+
+    if (existing.rows.length === 0) {
+
+      return res.status(404).json({
+
+        success: false,
+
+        message: "Call not found.",
+
+      });
+
+    }
+
+    if (
+      existing.rows[0].status === "ended" ||
+      existing.rows[0].status === "rejected"
+    ) {
+
+      return res.status(200).json({
+
+        success: true,
+
+        message: "Call already closed.",
+
+        call: existing.rows[0],
+
+      });
+
+    }
 
     /*
     ==========================================
@@ -34,62 +82,35 @@ const rejectCall = async (req, res) => {
 
     );
 
-    if (result.rows.length === 0) {
-
-      return res.status(404).json({
-
-        success: false,
-
-        message: 'Call not found.',
-
-      });
-
-    }
-
     /*
     ==========================================
-    SAVE TO CALL HISTORY
+    SAVE CALL HISTORY
     ==========================================
     */
 
-    await pool.query(
+   /*
+   ==========================================
+   UPDATE CALL HISTORY
+   ==========================================
+   */
 
-      `
-      INSERT INTO call_history
-      (
-        call_id,
-        caller_id,
-        receiver_id,
-        call_type,
-        status,
-        duration,
-        initiated_by,
-        ended_by,
-        started_at,
-        ended_at
-      )
-      VALUES
-      (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10
-      );
-      `,
+   await pool.query(
 
-      [
+     `
+     UPDATE call_history
+     SET
+       status = 'rejected',
+       ended_by = $2,
+       ended_at = CURRENT_TIMESTAMP
+     WHERE call_id = $1;
+     `,
 
-        result.rows[0].id,
-        result.rows[0].caller_id,
-        result.rows[0].receiver_id,
-        result.rows[0].call_type,
-        result.rows[0].status,
-        result.rows[0].duration,
-        result.rows[0].initiated_by,
-        result.rows[0].ended_by,
-        result.rows[0].started_at,
-        result.rows[0].ended_at,
+     [
+       callId,
+       ended_by,
+     ],
 
-      ],
-
-    );
+   );
 
     /*
     ==========================================
@@ -101,18 +122,12 @@ const rejectCall = async (req, res) => {
 
       `
       SELECT
-
         id,
-
         full_name,
-
         username,
-
         profile_image
-
       FROM users
-
-      WHERE id = $1
+      WHERE id = $1;
       `,
 
       [result.rows[0].caller_id],
@@ -129,35 +144,25 @@ const rejectCall = async (req, res) => {
 
       `
       SELECT
-
         id,
-
         full_name,
-
         username,
-
         profile_image
-
       FROM users
-
-      WHERE id = $1
+      WHERE id = $1;
       `,
 
       [result.rows[0].receiver_id],
 
     );
 
-    /*
-    ==========================================
-    RESPONSE
-    ==========================================
-    */
+    console.log(`✅ Call ${callId} rejected`);
 
     res.status(200).json({
 
       success: true,
 
-      message: 'Call rejected successfully.',
+      message: "Call rejected successfully.",
 
       call: result.rows[0],
 
@@ -169,13 +174,14 @@ const rejectCall = async (req, res) => {
 
   } catch (error) {
 
+    console.error("❌ Reject Call Error");
     console.error(error);
 
     res.status(500).json({
 
       success: false,
 
-      message: 'Failed to reject call.',
+      message: "Failed to reject call.",
 
       error: error.message,
 
