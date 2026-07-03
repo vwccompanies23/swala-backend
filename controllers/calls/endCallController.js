@@ -37,36 +37,42 @@ const endCall = async (req, res) => {
       });
     }
 
-    /*
-    ==========================================
-    END CALL
-    ==========================================
-    */
+   /*
+   ==========================================
+   END OR MISS CALL
+   ==========================================
+   */
 
-    const result = await pool.query(
-      `
-      UPDATE calls
-      SET
-        status = 'ended',
-        ended_at = CURRENT_TIMESTAMP,
-        ended_by = $2,
-        duration = COALESCE(
-          EXTRACT(
-            EPOCH FROM (
-              CURRENT_TIMESTAMP - started_at
-            )
-          )::INTEGER,
-          0
-        ),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *;
-      `,
-      [
-        callId,
-        ended_by,
-      ],
-    );
+   const status =
+     existing.rows[0].status === "ringing"
+       ? "missed"
+       : "ended";
+
+   const result = await pool.query(
+     `
+     UPDATE calls
+     SET
+       status = $2,
+       ended_at = CURRENT_TIMESTAMP,
+       ended_by = $3,
+       duration = COALESCE(
+         EXTRACT(
+           EPOCH FROM (
+             CURRENT_TIMESTAMP - started_at
+           )
+         )::INTEGER,
+         0
+       ),
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+     RETURNING *;
+     `,
+     [
+       callId,
+       status,
+       ended_by,
+     ],
+   );
 
     /*
     ==========================================
@@ -74,18 +80,24 @@ const endCall = async (req, res) => {
     ==========================================
     */
 
+    const callStatus =
+      result.rows[0].duration == 0
+        ? "missed"
+        : "ended";
+
     await pool.query(
       `
       UPDATE call_history
       SET
-        status = 'ended',
-        duration = $2,
-        ended_by = $3,
+        status = $2,
+        duration = $3,
+        ended_by = $4,
         ended_at = CURRENT_TIMESTAMP
       WHERE call_id = $1;
       `,
       [
         callId,
+        callStatus,
         result.rows[0].duration,
         ended_by,
       ],

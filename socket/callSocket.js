@@ -200,17 +200,42 @@ function registerCallSocket(io, socket) {
 
     if (callerSocket) {
 
-      io.to(callerSocket).emit("call-ended", data);
+      io.to(callerSocket).emit(
+        "call-ended",
+        data,
+      );
 
-      console.log(`📴 Sent call-ended to caller ${data.callerId}`);
+      console.log(
+        `📴 Sent call-ended to caller ${data.callerId}`,
+      );
 
     }
 
     if (receiverSocket) {
 
-      io.to(receiverSocket).emit("call-ended", data);
+      if (data.missed) {
 
-      console.log(`📴 Sent call-ended to receiver ${data.receiverId}`);
+        io.to(receiverSocket).emit(
+          "missed-call",
+          data,
+        );
+
+        console.log(
+          `📵 Missed call sent to ${data.receiverId}`,
+        );
+
+      } else {
+
+        io.to(receiverSocket).emit(
+          "call-ended",
+          data,
+        );
+
+        console.log(
+          `📴 Sent call-ended to receiver ${data.receiverId}`,
+        );
+
+      }
 
     }
 
