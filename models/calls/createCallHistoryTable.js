@@ -30,16 +30,16 @@ async function createCallHistoryTable() {
 
       status VARCHAR(30)
         NOT NULL
-        CHECK (
-          status IN (
-            'ringing'
-            'accepted',
-            'rejected',
-            'missed',
-            'cancelled',
-            'ended'
-          )
-        ),
+       CHECK (
+           status IN (
+               'ringing',
+               'accepted',
+               'rejected',
+               'missed',
+               'cancelled',
+               'ended'
+           )
+       )
 
       duration INTEGER
         DEFAULT 0,
