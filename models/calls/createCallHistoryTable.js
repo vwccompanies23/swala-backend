@@ -39,7 +39,7 @@ async function createCallHistoryTable() {
                'cancelled',
                'ended'
            )
-       )
+       ),
 
       duration INTEGER
         DEFAULT 0,
