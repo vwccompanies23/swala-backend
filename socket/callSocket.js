@@ -4,6 +4,8 @@ const {
   getSocket,
 } = require("./userRegistry");
 
+const pool = require("../config/db");
+
 function registerCallSocket(io, socket) {
 
   /*
@@ -97,6 +99,60 @@ function registerCallSocket(io, socket) {
     io.to(callerSocket).emit("call-answered", data);
 
     console.log("✅ Caller notified");
+
+  });
+  socket.on("call-group", async (data) => {
+
+    try {
+
+      const members = await pool.query(
+        `
+        SELECT user_id
+        FROM group_members
+        WHERE group_id = $1
+        `,
+        [data.groupId]
+      );
+
+      for (const member of members.rows) {
+
+        if (member.user_id == data.callerId) {
+          continue;
+        }
+
+        const memberSocket =
+          getSocket(member.user_id);
+
+        if (!memberSocket) {
+          continue;
+        }
+
+        io.to(memberSocket).emit(
+          "incoming-call",
+          {
+            callId: data.callId,
+            callerId: data.callerId,
+            callType: data.callType,
+            callerName: data.callerName,
+            callerPhoto: data.callerPhoto,
+            isGroupCall: true,
+            groupId: data.groupId,
+            groupName: data.groupName,
+            groupPhoto: data.groupPhoto,
+          },
+        );
+
+      }
+
+      console.log(
+        "✅ Group call sent"
+      );
+
+    } catch (e) {
+
+      console.error(e);
+
+    }
 
   });
 
