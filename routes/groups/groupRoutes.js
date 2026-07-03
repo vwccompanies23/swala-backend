@@ -1,155 +1,161 @@
-const express = require('express');
+const express = require("express");
 
 const router = express.Router();
 
 const createGroup =
-require('../../controllers/groups/createGroupController');
+require("../../controllers/groups/createGroupController");
 
 const getGroups =
-require('../../controllers/groups/getGroupsController');
+require("../../controllers/groups/getGroupsController");
 
 const addGroupMember =
-require('../../controllers/groups/addGroupMemberController');
+require("../../controllers/groups/addGroupMemberController");
 
 const removeGroupMember =
-require('../../controllers/groups/removeGroupMemberController');
+require("../../controllers/groups/removeGroupMemberController");
 
 const sendGroupMessage =
-require('../../controllers/groups/sendGroupMessageController');
+require("../../controllers/groups/sendGroupMessageController");
 
 const getGroupMessages =
-require('../../controllers/groups/getGroupMessagesController');
+require("../../controllers/groups/getGroupMessagesController");
 
 const getGroupMembers =
-require('../../controllers/groups/getGroupMembersController');
+require("../../controllers/groups/getGroupMembersController");
 
 const updateGroup =
-require('../../controllers/groups/updateGroupController');
+require("../../controllers/groups/updateGroupController");
 
 const deleteGroup =
-require('../../controllers/groups/deleteGroupController');
+require("../../controllers/groups/deleteGroupController");
 
 const leaveGroup =
-require('../../controllers/groups/leaveGroupController');
+require("../../controllers/groups/leaveGroupController");
 
 const makeAdmin =
-require('../../controllers/groups/makeAdminController');
+require("../../controllers/groups/makeAdminController");
 
 const removeAdmin =
-require('../../controllers/groups/removeAdminController');
+require("../../controllers/groups/removeAdminController");
 
 const startGroupCall =
-require('../../controllers/groups/startGroupCallController');
+require("../../controllers/groups/startGroupCallController");
 
 const endGroupCall =
-require('../../controllers/groups/endGroupCallController');
+require("../../controllers/groups/endGroupCallController");
 
-const uploadGroupImage =
-require('../../controllers/groups/uploadGroupImageController');
+const upload =
+require("../../middleware/groupUpload");
+
+const uploadGroupProfile =
+require("../../controllers/groups/uploadGroupProfileController");
 
 const uploadGroupVideo =
-require('../../controllers/groups/uploadGroupVideoController');
+require("../../controllers/groups/uploadGroupVideoController");
 
 const uploadGroupVoice =
-require('../../controllers/groups/uploadGroupVoiceController');
+require("../../controllers/groups/uploadGroupVoiceController");
 
 const uploadGroupFile =
-require('../../controllers/groups/uploadGroupFileController');
+require("../../controllers/groups/uploadGroupFileController");
+
 const getGroupAdmins =
-require('../../controllers/groups/getGroupAdminsController');
+require("../../controllers/groups/getGroupAdminsController");
 
 router.post(
-  '/create',
+  "/create",
   createGroup,
 );
 
 router.get(
-  '/',
+  "/",
   getGroups,
 );
 
 router.put(
-  '/update',
+  "/update",
   updateGroup,
 );
 
+router.put(
+  "/image",
+  upload.single("groupImage"),
+  uploadGroupProfile,
+);
+
 router.delete(
-  '/delete/:group_id',
+  "/delete/:group_id",
   deleteGroup,
 );
 
 router.post(
-  '/add-member',
+  "/add-member",
   addGroupMember,
 );
 
 router.post(
-  '/remove-member',
+  "/remove-member",
   removeGroupMember,
 );
 
 router.post(
-  '/leave',
+  "/leave",
   leaveGroup,
 );
 
 router.get(
-  '/members/:group_id',
+  "/members/:group_id",
   getGroupMembers,
 );
 
+router.get(
+  "/admins/:group_id",
+  getGroupAdmins,
+);
+
 router.post(
-  '/make-admin',
+  "/make-admin",
   makeAdmin,
 );
 
 router.post(
-  '/remove-admin',
+  "/remove-admin",
   removeAdmin,
 );
 
 router.post(
-  '/send-message',
+  "/send-message",
   sendGroupMessage,
 );
 
 router.get(
-  '/messages/:group_id',
+  "/messages/:group_id",
   getGroupMessages,
 );
 
 router.post(
-  '/upload-image',
-  uploadGroupImage,
-);
-
-router.post(
-  '/upload-video',
+  "/upload-video",
   uploadGroupVideo,
 );
 
 router.post(
-  '/upload-voice',
+  "/upload-voice",
   uploadGroupVoice,
 );
 
 router.post(
-  '/upload-file',
+  "/upload-file",
   uploadGroupFile,
 );
 
 router.post(
-  '/start-call',
+  "/start-call",
   startGroupCall,
 );
 
 router.post(
-  '/end-call',
+  "/end-call",
   endGroupCall,
-);
-router.get(
-  '/admins/:group_id',
-  getGroupAdmins,
 );
 
 module.exports = router;

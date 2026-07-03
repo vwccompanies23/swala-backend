@@ -3,13 +3,29 @@ const pool = require('../../config/db');
 const getGroups = async (req, res) => {
   try {
 
-    const result = await pool.query(
-      `
-      SELECT *
-      FROM groups
-      ORDER BY created_at DESC
-      `
-    );
+   const result = await pool.query(`
+   SELECT
+       g.*,
+
+       (
+         SELECT gm.message
+         FROM group_messages gm
+         WHERE gm.group_id = g.id
+         ORDER BY gm.created_at DESC
+         LIMIT 1
+       ) AS last_message,
+
+       (
+         SELECT gm.created_at
+         FROM group_messages gm
+         WHERE gm.group_id = g.id
+         ORDER BY gm.created_at DESC
+         LIMIT 1
+       ) AS last_time
+
+   FROM groups g
+   ORDER BY g.created_at DESC
+   `);
 
     res.json({
       success: true,
