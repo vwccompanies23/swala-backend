@@ -325,6 +325,7 @@ require("./realtime/realtimeService");
 
 // Initialize Socket.IO
 const io = initializeSocket(server);
+socketEvents(io);
 // Initialize Swala Realtime Engine
 realtimeService.initialize(io);
 // Start Server

@@ -5,7 +5,6 @@ const endCall = async (req, res) => {
   try {
 
     const { callId } = req.params;
-
     const { ended_by } = req.body;
 
     /*
@@ -29,8 +28,7 @@ const endCall = async (req, res) => {
             )
           )::INTEGER,
           0
-        ),
-        updated_at = CURRENT_TIMESTAMP
+        )
       WHERE id = $1
       RETURNING *;
       `,
@@ -47,7 +45,6 @@ const endCall = async (req, res) => {
       return res.status(404).json({
 
         success: false,
-
         message: 'Call not found.',
 
       });
@@ -109,18 +106,12 @@ const endCall = async (req, res) => {
 
       `
       SELECT
-
         id,
-
         full_name,
-
         username,
-
         profile_image
-
       FROM users
-
-      WHERE id = $1
+      WHERE id = $1;
       `,
 
       [result.rows[0].caller_id],
@@ -137,18 +128,12 @@ const endCall = async (req, res) => {
 
       `
       SELECT
-
         id,
-
         full_name,
-
         username,
-
         profile_image
-
       FROM users
-
-      WHERE id = $1
+      WHERE id = $1;
       `,
 
       [result.rows[0].receiver_id],

@@ -2,7 +2,7 @@ const {
   registerUser,
   removeUser,
   getSocket,
-} = require('./userRegistry');
+} = require("./userRegistry");
 
 function registerCallSocket(io, socket) {
 
@@ -12,7 +12,7 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('register', (userId) => {
+  socket.on("register", (userId) => {
 
     registerUser(userId, socket.id);
 
@@ -26,36 +26,41 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('start-call', (data) => {
+  socket.on("call-user", (data) => {
+
+    console.log("========== NEW CALL ==========");
+    console.log(data);
 
     const receiverSocket = getSocket(data.receiverId);
 
-    if (!receiverSocket) return;
+    console.log("Receiver socket:", receiverSocket);
 
-    io.to(receiverSocket).emit('incoming-call', {
+    if (!receiverSocket) {
 
+      console.log("❌ Receiver NOT online");
+
+      return;
+
+    }
+
+    console.log(
+      `📞 Incoming call: ${data.callerId} -> ${data.receiverId}`
+    );
+
+    console.log("✅ Sending incoming-call");
+
+    io.to(receiverSocket).emit("incoming-call", {
       callId: data.callId,
-
       callerId: data.callerId,
-
       receiverId: data.receiverId,
-
       callType: data.callType,
-
       callerName: data.callerName,
-
       callerUsername: data.callerUsername,
-
       callerPhoto: data.callerPhoto,
-
       isGroupCall: data.isGroupCall ?? false,
-
       groupId: data.groupId ?? null,
-
       groupName: data.groupName ?? "",
-
       groupPhoto: data.groupPhoto ?? "",
-
     });
 
   });
@@ -66,13 +71,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('answer-call', (data) => {
+  socket.on("answer-call", (data) => {
 
     const callerSocket = getSocket(data.callerId);
 
     if (!callerSocket) return;
 
-    io.to(callerSocket).emit('call-answered', data);
+    io.to(callerSocket).emit("call-answered", data);
 
   });
 
@@ -82,13 +87,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('reject-call', (data) => {
+  socket.on("reject-call", (data) => {
 
     const callerSocket = getSocket(data.callerId);
 
     if (!callerSocket) return;
 
-    io.to(callerSocket).emit('call-rejected', data);
+    io.to(callerSocket).emit("call-rejected", data);
 
   });
 
@@ -98,13 +103,21 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('end-call', (data) => {
+  socket.on("end-call", (data) => {
 
     const otherSocket = getSocket(data.receiverId);
 
-    if (!otherSocket) return;
+    if (!otherSocket) {
 
-    io.to(otherSocket).emit('call-ended', data);
+      console.log("❌ Receiver not found for end-call");
+
+      return;
+
+    }
+
+    console.log(`📴 Ending call for ${data.receiverId}`);
+
+    io.to(otherSocket).emit("call-ended", data);
 
   });
 
@@ -114,13 +127,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('webrtc-offer', (data) => {
+  socket.on("webrtc-offer", (data) => {
 
     const receiverSocket = getSocket(data.receiverId);
 
     if (!receiverSocket) return;
 
-    io.to(receiverSocket).emit('webrtc-offer', data);
+    io.to(receiverSocket).emit("webrtc-offer", data);
 
   });
 
@@ -130,13 +143,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('webrtc-answer', (data) => {
+  socket.on("webrtc-answer", (data) => {
 
     const callerSocket = getSocket(data.callerId);
 
     if (!callerSocket) return;
 
-    io.to(callerSocket).emit('webrtc-answer', data);
+    io.to(callerSocket).emit("webrtc-answer", data);
 
   });
 
@@ -146,13 +159,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('ice-candidate', (data) => {
+  socket.on("ice-candidate", (data) => {
 
     const receiverSocket = getSocket(data.receiverId);
 
     if (!receiverSocket) return;
 
-    io.to(receiverSocket).emit('ice-candidate', data);
+    io.to(receiverSocket).emit("ice-candidate", data);
 
   });
 
@@ -162,13 +175,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('toggle-mute', (data) => {
+  socket.on("toggle-mute", (data) => {
 
     const receiverSocket = getSocket(data.receiverId);
 
     if (!receiverSocket) return;
 
-    io.to(receiverSocket).emit('toggle-mute', data);
+    io.to(receiverSocket).emit("toggle-mute", data);
 
   });
 
@@ -178,13 +191,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('toggle-camera', (data) => {
+  socket.on("toggle-camera", (data) => {
 
     const receiverSocket = getSocket(data.receiverId);
 
     if (!receiverSocket) return;
 
-    io.to(receiverSocket).emit('toggle-camera', data);
+    io.to(receiverSocket).emit("toggle-camera", data);
 
   });
 
@@ -194,13 +207,13 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('switch-camera', (data) => {
+  socket.on("switch-camera", (data) => {
 
     const receiverSocket = getSocket(data.receiverId);
 
     if (!receiverSocket) return;
 
-    io.to(receiverSocket).emit('switch-camera', data);
+    io.to(receiverSocket).emit("switch-camera", data);
 
   });
 
@@ -210,7 +223,7 @@ function registerCallSocket(io, socket) {
   ==========================================
   */
 
-  socket.on('disconnect', () => {
+  socket.on("disconnect", () => {
 
     removeUser(socket.id);
 
