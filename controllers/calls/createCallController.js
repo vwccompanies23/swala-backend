@@ -62,66 +62,81 @@ const createCall = async (req, res) => {
     ==========================================
     */
 
-    const result = await pool.query(
+   let result;
 
-      `
-      INSERT INTO calls
-      (
-        caller_id,
-        receiver_id,
-        call_type,
-        initiated_by
-      )
-      VALUES
-      ($1,$2,$3,$1)
-      RETURNING *;
-      `,
+   if (is_group_call) {
 
-      [
+     result = await pool.query(
+       `
+       INSERT INTO calls
+       (
+         caller_id,
+         receiver_id,
+         call_type,
+         initiated_by
+       )
+       VALUES
+       ($1,NULL,$2,$1)
+       RETURNING *;
+       `,
+       [
+         caller_id,
+         call_type,
+       ],
+     );
 
-        caller_id,
+   } else {
 
-        receiver_id,
+     result = await pool.query(
+       `
+       INSERT INTO calls
+       (
+         caller_id,
+         receiver_id,
+         call_type,
+         initiated_by
+       )
+       VALUES
+       ($1,$2,$3,$1)
+       RETURNING *;
+       `,
+       [
+         caller_id,
+         receiver_id,
+         call_type,
+       ],
+     );
 
-        call_type,
-
-      ],
-
-    );
+   }
     /*
     ==========================================
     CREATE CALL HISTORY
     ==========================================
     */
 
-    await pool.query(
-
-      `
-      INSERT INTO call_history
-      (
-        call_id,
-        caller_id,
-        receiver_id,
-        call_type,
-        status,
-        duration,
-        initiated_by,
-        started_at
-      )
-      VALUES
-      (
-        $1,$2,$3,$4,'ringing',0,$2,CURRENT_TIMESTAMP
-      );
-      `,
-
-      [
-        result.rows[0].id,
-        caller_id,
-        receiver_id,
-        call_type,
-      ],
-
-    );
+   await pool.query(
+   `
+   INSERT INTO call_history
+   (
+   call_id,
+   caller_id,
+   receiver_id,
+   call_type,
+   status,
+   duration,
+   initiated_by,
+   started_at
+   )
+   VALUES
+   ($1,$2,$3,$4,'ringing',0,$2,CURRENT_TIMESTAMP);
+   `,
+   [
+   result.rows[0].id,
+   caller_id,
+   is_group_call ? null : receiver_id,
+   call_type,
+   ],
+   );
 
     /*
     ==========================================
