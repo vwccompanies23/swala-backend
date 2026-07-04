@@ -19,6 +19,20 @@ const createMessage = async (req, res) => {
 
             message,
 
+            message_type = "text",
+
+            media_url = "",
+
+            thumbnail_url = "",
+
+            file_name = "",
+
+            file_size = 0,
+
+            duration = 0,
+
+            reply_to = null,
+
         } = req.body;
 
         if (
@@ -118,30 +132,47 @@ const createMessage = async (req, res) => {
         const inserted = await pool.query(
 
             `
-            INSERT INTO messages
-            (
-                chat_id,
-                sender_id,
-                message
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3
-            )
-            RETURNING *
+           INSERT INTO messages
+           (
+               chat_id,
+               sender_id,
+               message,
+               message_type,
+               media_url,
+               thumbnail_url,
+               file_name,
+               file_size,
+               duration,
+               reply_to
+           )
+           VALUES
+           (
+               $1,
+               $2,
+               $3,
+               $4,
+               $5,
+               $6,
+               $7,
+               $8,
+               $9,
+               $10
+           )
+           RETURNING *
             `,
 
-            [
-
-                chatId,
-
-                sender_id,
-
-                message,
-
-            ],
+           [
+               chatId,
+               sender_id,
+               message,
+               message_type,
+               media_url,
+               thumbnail_url,
+               file_name,
+               file_size,
+               duration,
+               reply_to,
+           ],
 
         );
 
@@ -168,9 +199,21 @@ const createMessage = async (req, res) => {
 
                 m.message,
 
-                m.is_read,
+                m.message_type,
 
-                m.is_delivered,
+                m.media_url,
+
+                m.thumbnail_url,
+
+                m.file_name,
+
+                m.file_size,
+
+                m.duration,
+
+                m.reply_to,
+
+                m.is_read,
 
                 m.created_at
 

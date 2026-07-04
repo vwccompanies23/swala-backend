@@ -1,25 +1,49 @@
-const express = require('express');
+const express = require("express");
 
 const router = express.Router();
 
+const upload =
+require("../../middleware/upload");
+
 const createMessage =
-require('../../controllers/messages/createMessageController');
+require("../../controllers/messages/createMessageController");
+
+const createMediaMessage =
+require("../../controllers/messages/createMediaMessageController");
 
 const getMessages =
-require('../../controllers/messages/getMessagesController');
+require("../../controllers/messages/getMessagesController");
 
 const markDelivered =
-require('../../controllers/messages/markDeliveredController');
+require("../../controllers/messages/markDeliveredController");
 
 const markSeen =
-require('../../controllers/messages/markSeenController');
+require("../../controllers/messages/markSeenController");
 
-router.post('/send', createMessage);
+router.post(
+  "/send",
+  createMessage,
+);
 
-router.post('/delivered', markDelivered);
+router.post(
+  "/send-media",
+  upload.single("file"),
+  createMediaMessage,
+);
 
-router.post('/seen', markSeen);
+router.post(
+  "/delivered",
+  markDelivered,
+);
 
-router.get('/:chat_id', getMessages);
+router.post(
+  "/seen",
+  markSeen,
+);
+
+router.get(
+  "/:chat_id",
+  getMessages,
+);
 
 module.exports = router;

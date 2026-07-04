@@ -105,6 +105,8 @@ const callRoutes =
 require('./routes/calls/callRoutes');
 const broadcastRoutes =
 require('./routes/broadcasts/broadcastRoutes');
+const uploadRoutes =
+require('./routes/uploads/upload.routes');
 
 const app = express();
 
@@ -253,6 +255,11 @@ app.use(
   '/api/broadcast',
   broadcastRoutes,
 );
+app.use(
+  '/api/upload',
+  uploadRoutes,
+);
+
 
 app.get('/', (req, res) => {
   res.json({
