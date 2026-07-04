@@ -107,6 +107,8 @@ const broadcastRoutes =
 require('./routes/broadcasts/broadcastRoutes');
 const uploadRoutes =
 require('./routes/uploads/upload.routes');
+const contactRoutes =
+require("./routes/contacts/contactRoutes");
 
 const app = express();
 
@@ -258,6 +260,10 @@ app.use(
 app.use(
   '/api/upload',
   uploadRoutes,
+);
+app.use(
+    "/contacts",
+    contactRoutes,
 );
 
 
