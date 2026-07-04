@@ -225,29 +225,63 @@ const createMessage = async (req, res) => {
 
         try {
 
-            await sendNotification({
+           await sendNotification({
 
-                userId: receiver_id,
+               userId: receiver_id,
 
-                title: "New Message",
+               title: messageData.sender_name,
 
-                body:
+               body: message,
 
-                    `${messageData.sender_name}: ${message}`,
+               data: {
 
-                data: {
+                   //////////////////////////////////////////////////////
+                   // NOTIFICATION TYPE
+                   //////////////////////////////////////////////////////
 
-                    chatId:
+                   type: "message",
 
-                        chatId.toString(),
+                   //////////////////////////////////////////////////////
+                   // CHAT
+                   //////////////////////////////////////////////////////
 
-                    senderId:
+                   chatId: chatId.toString(),
 
-                        sender_id.toString(),
+                   //////////////////////////////////////////////////////
+                   // USERS
+                   //////////////////////////////////////////////////////
 
-                },
+                   senderId: sender_id.toString(),
 
-            });
+                   receiverId: receiver_id.toString(),
+
+                   senderName: messageData.sender_name,
+
+                   senderUsername: messageData.username,
+
+                   senderPhoto: messageData.profile_image ?? "",
+
+                   //////////////////////////////////////////////////////
+                   // MESSAGE
+                   //////////////////////////////////////////////////////
+
+                   messageId: messageData.id.toString(),
+
+                   message: message,
+
+                   createdAt: messageData.created_at.toString(),
+
+                   //////////////////////////////////////////////////////
+                   // APP
+                   //////////////////////////////////////////////////////
+
+                   click_action: "FLUTTER_NOTIFICATION_CLICK",
+
+                   screen: "chat",
+
+               },
+
+           });
 
         }
 
