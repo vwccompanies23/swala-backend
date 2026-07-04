@@ -23,6 +23,34 @@ class EventDispatcher {
         }
 
     }
+    //////////////////////////////////////////////////////
+    // DELETE MESSAGE
+    //////////////////////////////////////////////////////
+
+    deleteMessage(data) {
+
+        const socket =
+            socketRegistry.getSocket(
+                data.receiverId,
+            );
+
+        if (socket) {
+
+            socket.emit(
+
+                "message-deleted",
+
+                {
+
+                    messageId: data.messageId,
+
+                },
+
+            );
+
+        }
+
+    }
 
     //////////////////////////////////////////////////////
     // GROUP
@@ -214,6 +242,6 @@ class EventDispatcher {
 
     }
 
-}
+  }
 
 module.exports = new EventDispatcher();

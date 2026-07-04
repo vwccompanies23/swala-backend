@@ -131,7 +131,33 @@ socket.on('typing', (data) => {
     }
 
   });
+  //////////////////////////////////////////////////////
+    // DELETE MESSAGE
+    //////////////////////////////////////////////////////
 
+    socket.on("message-deleted", (data) => {
+
+      const receiverSocket =
+          getSocket(data.receiverId);
+
+      if (receiverSocket) {
+
+        io.to(receiverSocket).emit(
+
+          "message-deleted",
+
+          {
+
+            messageId: data.messageId,
+
+          },
+
+        );
+
+      }
+
+    });
 }
+
 
 module.exports = registerChatSocket;

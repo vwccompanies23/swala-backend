@@ -19,6 +19,8 @@ require("../../controllers/messages/markDeliveredController");
 
 const markSeen =
 require("../../controllers/messages/markSeenController");
+const deleteMessage =
+require("../../controllers/messages/deleteMessageController");
 
 router.post(
   "/send",
@@ -44,6 +46,10 @@ router.post(
 router.get(
   "/:chat_id",
   getMessages,
+);
+router.delete(
+  "/delete/:messageId",
+  deleteMessage,
 );
 
 module.exports = router;
