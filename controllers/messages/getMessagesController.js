@@ -84,7 +84,7 @@ const getMessages = async (req, res) => {
 
         );
 
-        const messages = result.rows.map((message) {
+        const messages = result.rows.map((message) => {
 
             return {
 
