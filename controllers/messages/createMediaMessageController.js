@@ -17,19 +17,25 @@ const createMediaMessage = async (req, res) => {
 
             message_type,
 
-            file_name,
+            media_url,
 
-            file_size,
+            file_name = "",
+
+            file_size = 0,
 
         } = req.body;
 
-        if (!req.file) {
+        //////////////////////////////////////////////////////
+        // VALIDATION
+        //////////////////////////////////////////////////////
+
+        if (!media_url) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "No file uploaded",
+                error: "media_url is required",
 
             });
 
@@ -46,30 +52,26 @@ const createMediaMessage = async (req, res) => {
             FROM chats
             WHERE
             (
-                user_one_id = $1
-                AND user_two_id = $2
+                user_one_id=$1
+                AND user_two_id=$2
             )
             OR
             (
-                user_one_id = $2
-                AND user_two_id = $1
+                user_one_id=$2
+                AND user_two_id=$1
             )
             LIMIT 1
             `,
-
             [
-
                 sender_id,
-
                 receiver_id,
-
-            ],
+            ]
 
         );
 
         let chatId;
 
-        if (chat.rows.length === 0) {
+        if (chat.rows.length == 0) {
 
             const created = await pool.query(
 
@@ -86,14 +88,10 @@ const createMediaMessage = async (req, res) => {
                 )
                 RETURNING id
                 `,
-
                 [
-
                     sender_id,
-
                     receiver_id,
-
-                ],
+                ]
 
             );
 
@@ -106,7 +104,7 @@ const createMediaMessage = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // SAVE MEDIA MESSAGE
+        // SAVE MESSAGE
         //////////////////////////////////////////////////////
 
         const inserted = await pool.query(
@@ -134,24 +132,15 @@ const createMediaMessage = async (req, res) => {
             )
             RETURNING *
             `,
-
             [
-
                 chatId,
-
                 sender_id,
-
                 message,
-
                 message_type,
-
-                `${req.protocol}://${req.get("host")}/${req.file.path.replace(/\\/g, "/")}`,
-
+                media_url,
                 file_name,
-
                 file_size,
-
-            ],
+            ]
 
         );
 
@@ -175,42 +164,47 @@ const createMediaMessage = async (req, res) => {
             FROM messages m
 
             JOIN users u
-            ON u.id = m.sender_id
+            ON u.id=m.sender_id
 
-            WHERE m.id = $1
+            WHERE m.id=$1
             `,
-
             [
-
                 inserted.rows[0].id,
-
-            ],
+            ]
 
         );
 
-        const messageData =
-            fullMessage.rows[0];
+        const messageData = fullMessage.rows[0];
 
-            messageData.is_image_message =
-                messageData.message_type === "image";
+        messageData.is_image_message =
+            messageData.message_type === "image";
 
-            messageData.is_video_message =
-                messageData.message_type === "video";
+        messageData.is_video_message =
+            messageData.message_type === "video";
 
-            messageData.is_voice_message =
-                messageData.message_type === "voice";
+        messageData.is_voice_message =
+            messageData.message_type === "voice";
 
-            messageData.image_path =
-                messageData.media_url;
+        messageData.is_audio_message =
+            messageData.message_type === "audio";
 
-            messageData.video_path =
-                messageData.media_url;
+        messageData.is_document_message =
+            messageData.message_type === "document";
 
-            messageData.audio_path =
-                messageData.media_url;
+        messageData.image_path =
+            messageData.media_url;
+
+        messageData.video_path =
+            messageData.media_url;
+
+        messageData.audio_path =
+            messageData.media_url;
+
+        messageData.document_path =
+            messageData.media_url;
 
         //////////////////////////////////////////////////////
-        // SEND REALTIME
+        // REALTIME
         //////////////////////////////////////////////////////
 
         eventDispatcher.chat({
