@@ -288,12 +288,12 @@ app.use(
   uploadRoutes,
 );
 app.use(
-    "/contacts",
+    "/api/contacts",
     contactRoutes,
 );
 app.use(
 
-    "/media",
+    "/api/media",
 
     mediaRoutes,
 
