@@ -4,6 +4,8 @@ require('dotenv').config();
 require('./config/db');
 require("./firebase/firebaseAdmin");
 
+const path = require("path");
+
 const http = require('http');
 const {
   initializeSocket,
@@ -84,6 +86,9 @@ require('./models/calls/createCallParticipantsTable');
 const createCallHistoryTable =
 require('./models/calls/createCallHistoryTable');
 
+const createMediaMessagesTable =
+require("./models/messages/createMediaMessagesTable");
+
 const channelPostRoutes =
 require('./routes/channels/channelPosts');
 const addBusinessCreatorColumns =
@@ -109,6 +114,9 @@ const uploadRoutes =
 require('./routes/uploads/upload.routes');
 const contactRoutes =
 require("./routes/contacts/contactRoutes");
+
+const mediaRoutes =
+require("./routes/media/mediaRoutes");
 
 const app = express();
 
@@ -136,6 +144,24 @@ app.use(require("./middleware/errorMiddleware"));
 app.use(
 
 require("./middleware/rateLimiter"),
+
+);
+
+app.use(
+
+    "/uploads",
+
+    express.static(
+
+        path.join(
+
+            __dirname,
+
+            "uploads",
+
+        ),
+
+    ),
 
 );
 
@@ -265,6 +291,13 @@ app.use(
     "/contacts",
     contactRoutes,
 );
+app.use(
+
+    "/media",
+
+    mediaRoutes,
+
+);
 
 
 app.get('/', (req, res) => {
@@ -322,6 +355,8 @@ async function initializeDatabase() {
   await createBroadcastWallpaperTable();
   await createBroadcastReadsTable();
   await createBroadcastReactionsTable();
+
+  await createMediaMessagesTable();
 
   console.log("✅ Database initialized successfully.");
 

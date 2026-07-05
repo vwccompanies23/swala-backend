@@ -37,35 +37,84 @@ const getMessages = async (req, res) => {
 
         const result = await pool.query(
 
-            `
-            SELECT
+        `
+        SELECT
 
-                m.*,
+            m.*,
 
-                u.full_name,
+            u.full_name,
 
-                u.username,
+            u.username,
 
-                u.profile_image
+            u.profile_image,
 
-            FROM messages m
+            mm.media_type,
 
-            LEFT JOIN users u
+            mm.file_name,
 
-            ON u.id = m.sender_id
+            mm.original_name,
 
-            WHERE m.chat_id = $1
+            mm.file_path,
 
-            ORDER BY m.created_at ASC
-            `,
+            mm.file_url,
 
-            [
+            mm.mime_type,
 
-                chat_id,
+            mm.file_size
 
-            ],
+        FROM messages m
+
+        LEFT JOIN users u
+
+        ON u.id = m.sender_id
+
+        LEFT JOIN media_messages mm
+
+        ON mm.message_id = m.id
+
+        WHERE m.chat_id = $1
+
+        ORDER BY m.created_at ASC
+
+        `,
+
+        [
+            chat_id,
+        ],
 
         );
+
+        const messages = result.rows.map((message) {
+
+            return {
+
+                ...message,
+
+                media: message.media_type
+
+                    ? {
+
+                        type: message.media_type,
+
+                        fileName: message.file_name,
+
+                        originalName: message.original_name,
+
+                        path: message.file_path,
+
+                        url: message.file_url,
+
+                        mimeType: message.mime_type,
+
+                        size: message.file_size,
+
+                    }
+
+                    : null,
+
+            };
+
+        });
 
         //////////////////////////////////////////////////////
         // MARK DELIVERED
@@ -146,7 +195,7 @@ const getMessages = async (req, res) => {
 
             success: true,
 
-            messages: result.rows,
+            messages,
 
         });
 
