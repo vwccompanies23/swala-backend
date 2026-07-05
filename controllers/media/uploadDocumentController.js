@@ -9,22 +9,67 @@ const uploadDocumentController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         if (!req.file) {
-
             return res.status(400).json({
-
                 success: false,
-
                 error: "No document uploaded.",
-
             });
-
         }
 
         //////////////////////////////////////////////////////
-        // ALLOWED DOCUMENT TYPES
+        // VALIDATE DOCUMENT
         //////////////////////////////////////////////////////
 
-        const allowed = [
+        const extension = path
+            .extname(req.file.originalname)
+            .toLowerCase();
+
+        const allowedExtensions = [
+
+            ".pdf",
+
+            ".doc",
+
+            ".docx",
+
+            ".xls",
+
+            ".xlsx",
+
+            ".ppt",
+
+            ".pptx",
+
+            ".txt",
+
+            ".csv",
+
+            ".json",
+
+            ".xml",
+
+            ".zip",
+
+            ".rar",
+
+            ".7z",
+
+            ".tar",
+
+            ".gz",
+
+            ".rtf",
+
+            ".odt",
+
+            ".ods",
+
+            ".odp",
+
+        ];
+
+        const mime = (req.file.mimetype || "").toLowerCase();
+
+        const allowedMime = [
 
             "application/pdf",
 
@@ -44,20 +89,28 @@ const uploadDocumentController = async (req, res) => {
 
             "application/x-zip-compressed",
 
+            "application/x-rar-compressed",
+
+            "application/json",
+
+            "application/xml",
+
             "text/plain",
+
+            "text/csv",
+
+            "application/octet-stream",
 
         ];
 
-        if (!allowed.includes(req.file.mimetype)) {
-
+        if (
+            !allowedMime.includes(mime) &&
+            !allowedExtensions.includes(extension)
+        ) {
             return res.status(400).json({
-
                 success: false,
-
-                error: "Invalid document type.",
-
+                error: "Unsupported document type.",
             });
-
         }
 
         //////////////////////////////////////////////////////
@@ -65,13 +118,10 @@ const uploadDocumentController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const baseUrl =
-
             process.env.BASE_URL ||
-
             `${req.protocol}://${req.get("host")}`;
 
-        const documentUrl =
-
+        const url =
             `${baseUrl}/${req.file.path.replace(/\\/g, "/")}`;
 
         //////////////////////////////////////////////////////
@@ -82,44 +132,31 @@ const uploadDocumentController = async (req, res) => {
 
             success: true,
 
+            url,
+
             mediaType: "document",
 
-            document: {
+            fileName: req.file.filename,
 
-                fileName: req.file.filename,
+            originalName: req.file.originalname,
 
-                originalName: req.file.originalname,
+            mimeType: req.file.mimetype,
 
-                mimeType: req.file.mimetype,
+            extension,
 
-                extension: path.extname(
+            size: req.file.size,
 
-                    req.file.originalname,
-
-                ),
-
-                size: req.file.size,
-
-                url: documentUrl,
-
-                path: req.file.path.replace(/\\/g, "/"),
-
-            },
+            path: req.file.path.replace(/\\/g, "/"),
 
         });
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
         return res.status(500).json({
-
             success: false,
-
             error: error.message,
-
         });
 
     }

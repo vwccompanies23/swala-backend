@@ -1,3 +1,5 @@
+const path = require("path");
+
 const pool = require("../../config/db");
 
 const mediaMessageService =
@@ -44,60 +46,124 @@ const createMediaMessageController = async (req, res) => {
 
         } = req.body;
 
+        if (!chatId || !senderId || !receiverId) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error: "Missing required fields.",
+
+            });
+
+        }
+
+        //////////////////////////////////////////////////////
+        // DETECT MEDIA TYPE
+        //////////////////////////////////////////////////////
+
+        const mime =
+            (req.file.mimetype || "").toLowerCase();
+
+        const extension =
+            path.extname(req.file.originalname)
+            .toLowerCase();
+
+        let detectedType =
+            mediaType;
+
+        if (!detectedType) {
+
+            if (
+                mime.startsWith("image/") ||
+                [".jpg",".jpeg",".png",".gif",".bmp",".webp",".heic",".heif",".jfif",".avif",".svg"]
+                .includes(extension)
+            ) {
+
+                detectedType = "image";
+
+            }
+
+            else if (
+                mime.startsWith("video/") ||
+                [".mp4",".mov",".avi",".mkv",".3gp",".webm",".m4v"]
+                .includes(extension)
+            ) {
+
+                detectedType = "video";
+
+            }
+
+            else if (
+                mime.startsWith("audio/") ||
+                mime === "application/octet-stream"
+            ) {
+
+                if (
+                    [".opus",".aac",".m4a",".amr"]
+                    .includes(extension)
+                ) {
+
+                    detectedType = "voice";
+
+                } else {
+
+                    detectedType = "audio";
+
+                }
+
+            }
+
+            else {
+
+                detectedType = "document";
+
+            }
+
+        }
+
         //////////////////////////////////////////////////////
         // CREATE MESSAGE
         //////////////////////////////////////////////////////
 
-        const messageResult = await pool.query(
+        const messageResult =
+        await pool.query(
 
             `
-            INSERT INTO messages (
-
+            INSERT INTO messages
+            (
                 chat_id,
-
                 sender_id,
-
                 message,
-
                 created_at
-
             )
-
-            VALUES (
-
+            VALUES
+            (
                 $1,$2,$3,NOW()
-
             )
-
             RETURNING *;
             `,
 
             [
-
                 chatId,
-
                 senderId,
-
                 message,
-
             ],
 
         );
 
         const createdMessage =
-            messageResult.rows[0];
+        messageResult.rows[0];
 
         //////////////////////////////////////////////////////
-        // BUILD URL
+        // FILE URL
         //////////////////////////////////////////////////////
 
         const baseUrl =
             process.env.BASE_URL ||
-
             `${req.protocol}://${req.get("host")}`;
 
         const fileUrl =
-
             `${baseUrl}/${req.file.path.replace(/\\/g,"/")}`;
 
         //////////////////////////////////////////////////////
@@ -105,36 +171,36 @@ const createMediaMessageController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const media =
+        await mediaMessageService.save({
 
-            await mediaMessageService.save({
+            messageId:
+            createdMessage.id,
 
-                messageId:
-                createdMessage.id,
+            chatId,
 
-                chatId,
+            senderId,
 
-                senderId,
+            mediaType:
+            detectedType,
 
-                mediaType,
+            fileName:
+            req.file.filename,
 
-                fileName:
-                req.file.filename,
+            originalName:
+            req.file.originalname,
 
-                originalName:
-                req.file.originalname,
+            filePath:
+            req.file.path,
 
-                filePath:
-                req.file.path,
+            fileUrl,
 
-                fileUrl,
+            mimeType:
+            req.file.mimetype,
 
-                mimeType:
-                req.file.mimetype,
+            fileSize:
+            req.file.size,
 
-                fileSize:
-                req.file.size,
-
-            });
+        });
 
         //////////////////////////////////////////////////////
         // REALTIME
@@ -158,7 +224,7 @@ const createMediaMessageController = async (req, res) => {
         // RESPONSE
         //////////////////////////////////////////////////////
 
-        return res.json({
+        return res.status(201).json({
 
             success: true,
 

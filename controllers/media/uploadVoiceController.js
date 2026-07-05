@@ -9,63 +9,46 @@ const uploadVoiceController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         if (!req.file) {
-
             return res.status(400).json({
-
                 success: false,
-
                 error: "No voice message uploaded.",
-
             });
-
         }
 
         //////////////////////////////////////////////////////
-        // VALIDATE AUDIO
+        // VALIDATE VOICE
         //////////////////////////////////////////////////////
-
-        if (!req.file.mimetype.startsWith("audio/")) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                error: "Invalid voice message.",
-
-            });
-
-        }
 
         const extension = path
             .extname(req.file.originalname)
             .toLowerCase();
 
-        const allowed = [
-
+        const allowedExtensions = [
             ".m4a",
-
             ".aac",
-
             ".opus",
-
             ".ogg",
-
             ".wav",
-
             ".amr",
-
+            ".3gp",
+            ".caf",
+            ".mp3",
         ];
 
-        if (!allowed.includes(extension)) {
+        const mime = (req.file.mimetype || "").toLowerCase();
 
+        const validMime =
+            mime.startsWith("audio/") ||
+            mime === "application/octet-stream";
+
+        if (
+            !validMime &&
+            !allowedExtensions.includes(extension)
+        ) {
             return res.status(400).json({
-
                 success: false,
-
                 error: "Unsupported voice format.",
-
             });
-
         }
 
         //////////////////////////////////////////////////////
@@ -73,13 +56,10 @@ const uploadVoiceController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const baseUrl =
-
             process.env.BASE_URL ||
-
             `${req.protocol}://${req.get("host")}`;
 
-        const voiceUrl =
-
+        const url =
             `${baseUrl}/${req.file.path.replace(/\\/g, "/")}`;
 
         //////////////////////////////////////////////////////
@@ -90,40 +70,31 @@ const uploadVoiceController = async (req, res) => {
 
             success: true,
 
+            url,
+
             mediaType: "voice",
 
-            voice: {
+            fileName: req.file.filename,
 
-                fileName: req.file.filename,
+            originalName: req.file.originalname,
 
-                originalName: req.file.originalname,
+            mimeType: req.file.mimetype,
 
-                mimeType: req.file.mimetype,
+            extension,
 
-                extension,
+            size: req.file.size,
 
-                size: req.file.size,
-
-                url: voiceUrl,
-
-                path: req.file.path.replace(/\\/g, "/"),
-
-            },
+            path: req.file.path.replace(/\\/g, "/"),
 
         });
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
         return res.status(500).json({
-
             success: false,
-
             error: error.message,
-
         });
 
     }

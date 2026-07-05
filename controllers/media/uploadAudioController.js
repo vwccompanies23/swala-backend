@@ -9,38 +9,21 @@ const uploadAudioController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         if (!req.file) {
-
             return res.status(400).json({
-
                 success: false,
-
                 error: "No audio file uploaded.",
-
             });
-
         }
 
         //////////////////////////////////////////////////////
         // VALIDATE AUDIO
         //////////////////////////////////////////////////////
 
-        if (!req.file.mimetype.startsWith("audio/")) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                error: "Invalid audio file.",
-
-            });
-
-        }
-
         const extension = path
             .extname(req.file.originalname)
             .toLowerCase();
 
-        const allowed = [
+        const allowedExtensions = [
 
             ".mp3",
 
@@ -56,18 +39,32 @@ const uploadAudioController = async (req, res) => {
 
             ".wma",
 
+            ".opus",
+
+            ".aiff",
+
+            ".caf",
+
+            ".amr",
+
+            ".3gp",
+
         ];
 
-        if (!allowed.includes(extension)) {
+        const mime = (req.file.mimetype || "").toLowerCase();
 
+        const validMime =
+            mime.startsWith("audio/") ||
+            mime === "application/octet-stream";
+
+        if (
+            !validMime &&
+            !allowedExtensions.includes(extension)
+        ) {
             return res.status(400).json({
-
                 success: false,
-
                 error: "Unsupported audio format.",
-
             });
-
         }
 
         //////////////////////////////////////////////////////
@@ -75,13 +72,10 @@ const uploadAudioController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const baseUrl =
-
             process.env.BASE_URL ||
-
             `${req.protocol}://${req.get("host")}`;
 
-        const audioUrl =
-
+        const url =
             `${baseUrl}/${req.file.path.replace(/\\/g, "/")}`;
 
         //////////////////////////////////////////////////////
@@ -92,40 +86,31 @@ const uploadAudioController = async (req, res) => {
 
             success: true,
 
+            url,
+
             mediaType: "audio",
 
-            audio: {
+            fileName: req.file.filename,
 
-                fileName: req.file.filename,
+            originalName: req.file.originalname,
 
-                originalName: req.file.originalname,
+            mimeType: req.file.mimetype,
 
-                mimeType: req.file.mimetype,
+            extension,
 
-                extension,
+            size: req.file.size,
 
-                size: req.file.size,
-
-                url: audioUrl,
-
-                path: req.file.path.replace(/\\/g, "/"),
-
-            },
+            path: req.file.path.replace(/\\/g, "/"),
 
         });
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 
         return res.status(500).json({
-
             success: false,
-
             error: error.message,
-
         });
 
     }
