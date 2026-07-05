@@ -8,31 +8,19 @@ const { v4: uuid } = require("uuid");
 //////////////////////////////////////////////////////
 
 const folders = [
-
     "uploads/images",
-
     "uploads/videos",
-
     "uploads/voice",
-
     "uploads/audio",
-
     "uploads/documents",
-
 ];
 
 for (const folder of folders) {
-
     if (!fs.existsSync(folder)) {
-
         fs.mkdirSync(folder, {
-
             recursive: true,
-
         });
-
     }
-
 }
 
 //////////////////////////////////////////////////////
@@ -43,47 +31,39 @@ const storage = multer.diskStorage({
 
     destination(req, file, cb) {
 
-        const mime = file.mimetype;
+        const mime = (file.mimetype || "").toLowerCase();
 
         let folder = "uploads/documents";
 
-        if (mime.startsWith("image/")) {
+        if (
+            mime.startsWith("image/")
+        ) {
 
             folder = "uploads/images";
 
-        }
-
-        else if (mime.startsWith("video/")) {
+        } else if (
+            mime.startsWith("video/")
+        ) {
 
             folder = "uploads/videos";
 
-        }
-
-        else if (
-
+        } else if (
             mime.startsWith("audio/")
-
         ) {
 
-            const original =
-
+            const name =
                 file.originalname.toLowerCase();
 
             if (
-
-                original.endsWith(".m4a") ||
-
-                original.endsWith(".aac") ||
-
-                original.endsWith(".opus")
-
+                name.endsWith(".opus") ||
+                name.endsWith(".aac") ||
+                name.endsWith(".m4a") ||
+                name.endsWith(".amr")
             ) {
 
                 folder = "uploads/voice";
 
-            }
-
-            else {
+            } else {
 
                 folder = "uploads/audio";
 
@@ -91,31 +71,17 @@ const storage = multer.diskStorage({
 
         }
 
-        cb(
-
-            null,
-
-            folder,
-
-        );
+        cb(null, folder);
 
     },
 
     filename(req, file, cb) {
 
-        const extension =
-
-            path.extname(
-
-                file.originalname,
-
-            );
-
         cb(
 
             null,
 
-            `${uuid()}${extension}`,
+            `${uuid()}${path.extname(file.originalname)}`,
 
         );
 
@@ -127,69 +93,57 @@ const storage = multer.diskStorage({
 // FILTER
 //////////////////////////////////////////////////////
 
-const allowed = [
+function fileFilter(req, file, cb) {
 
-    "image/",
+    console.log("========== UPLOAD ==========");
+    console.log("Original:", file.originalname);
+    console.log("Mime:", file.mimetype);
+    console.log("============================");
 
-    "video/",
+    const mime =
+        (file.mimetype || "").toLowerCase();
 
-    "audio/",
+    const allowed =
 
-    "application/pdf",
+        mime.startsWith("image/") ||
 
-    "application/msword",
+        mime.startsWith("video/") ||
 
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        mime.startsWith("audio/") ||
 
-    "application/zip",
+        mime === "application/pdf" ||
 
-    "application/x-zip-compressed",
+        mime === "application/msword" ||
 
-    "text/plain",
+        mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
 
-];
+        mime === "application/vnd.ms-excel" ||
 
-function fileFilter(
+        mime === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
 
-    req,
+        mime === "application/vnd.ms-powerpoint" ||
 
-    file,
+        mime === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
 
-    cb,
+        mime === "application/zip" ||
 
-) {
+        mime === "application/x-zip-compressed" ||
 
-    const ok = allowed.some(
+        mime === "text/plain" ||
 
-        (type) =>
+        mime === "application/octet-stream";
 
-            file.mimetype.startsWith(type) ||
+    if (!allowed) {
 
-            file.mimetype === type,
-
-    );
-
-    if (!ok) {
+        console.log("Rejected MIME:", mime);
 
         return cb(
-
-            new Error(
-
-                "Unsupported file type.",
-
-            ),
-
+            new Error("Unsupported file type.")
         );
 
     }
 
-    cb(
-
-        null,
-
-        true,
-
-    );
+    cb(null, true);
 
 }
 
@@ -205,13 +159,7 @@ module.exports = multer({
 
     limits: {
 
-        fileSize:
-
-            1024 *
-
-            1024 *
-
-            500,
+        fileSize: 500 * 1024 * 1024,
 
     },
 
