@@ -1,6 +1,7 @@
 const path = require("path");
 
-const pool = require("../../config/db");
+const pool =
+require("../../config/db");
 
 const mediaMessageService =
 require("../../services/media/mediaMessageService");
@@ -8,7 +9,8 @@ require("../../services/media/mediaMessageService");
 const eventDispatcher =
 require("../../realtime/eventDispatcher");
 
-const createMediaMessageController = async (req, res) => {
+const createMediaMessageController =
+async (req, res) => {
 
     try {
 
@@ -44,9 +46,27 @@ const createMediaMessageController = async (req, res) => {
 
             message = "",
 
+            duration = 0,
+
+            thumbnailUrl = "",
+
+            replyTo = null,
+
         } = req.body;
 
-        if (!chatId || !senderId || !receiverId) {
+        //////////////////////////////////////////////////////
+        // VALIDATION
+        //////////////////////////////////////////////////////
+
+        if (
+
+            !chatId ||
+
+            !senderId ||
+
+            !receiverId
+
+        ) {
 
             return res.status(400).json({
 
@@ -59,202 +79,411 @@ const createMediaMessageController = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // DETECT MEDIA TYPE
+        // FILE
         //////////////////////////////////////////////////////
 
-        const mime =
-            (req.file.mimetype || "").toLowerCase();
+        const file = req.file;
 
-        const extension =
-            path.extname(req.file.originalname)
+        const mime =
+
+            (file.mimetype || "")
             .toLowerCase();
 
-        let detectedType =
-            mediaType;
+        const extension =
 
-        if (!detectedType) {
+            path.extname(
 
-            if (
-                mime.startsWith("image/") ||
-                [".jpg",".jpeg",".png",".gif",".bmp",".webp",".heic",".heif",".jfif",".avif",".svg"]
-                .includes(extension)
-            ) {
+                file.originalname,
 
-                detectedType = "image";
+            ).toLowerCase();
 
-            }
+        //////////////////////////////////////////////////////
+        // DETECT TYPE
+        //////////////////////////////////////////////////////
 
-            else if (
-                mime.startsWith("video/") ||
-                [".mp4",".mov",".avi",".mkv",".3gp",".webm",".m4v"]
-                .includes(extension)
-            ) {
+        let detectedType = mediaType;
 
-                detectedType = "video";
+        //////////////////////////////////////////////////////
+                // AUTO DETECT IMAGE
+                //////////////////////////////////////////////////////
 
-            }
+                if (!detectedType) {
 
-            else if (
-                mime.startsWith("audio/") ||
-                mime === "application/octet-stream"
-            ) {
+                    if (
 
-                if (
-                    [".opus",".aac",".m4a",".amr"]
-                    .includes(extension)
-                ) {
+                        mime.startsWith("image/") ||
 
-                    detectedType = "voice";
+                        [
 
-                } else {
+                            ".jpg",
+                            ".jpeg",
+                            ".png",
+                            ".gif",
+                            ".bmp",
+                            ".webp",
+                            ".heic",
+                            ".heif",
+                            ".jfif",
+                            ".avif",
+                            ".svg",
+                            ".tif",
+                            ".tiff",
+                            ".ico"
 
-                    detectedType = "audio";
+                        ].includes(extension)
+
+                    ) {
+
+                        detectedType = "image";
+
+                    }
 
                 }
 
-            }
+                //////////////////////////////////////////////////////
+                // AUTO DETECT VIDEO
+                //////////////////////////////////////////////////////
 
-            else {
+                if (!detectedType) {
 
-                detectedType = "document";
+                    if (
 
-            }
+                        mime.startsWith("video/") ||
 
-        }
+                        [
 
-        //////////////////////////////////////////////////////
-        // CREATE MESSAGE
-        //////////////////////////////////////////////////////
+                            ".mp4",
+                            ".mov",
+                            ".avi",
+                            ".mkv",
+                            ".3gp",
+                            ".webm",
+                            ".m4v",
+                            ".flv",
+                            ".wmv",
+                            ".mpeg",
+                            ".mpg",
+                            ".ts"
 
-        const messageResult =
-        await pool.query(
+                        ].includes(extension)
 
-            `
-            INSERT INTO messages
-            (
-                chat_id,
-                sender_id,
-                message,
-                created_at
-            )
-            VALUES
-            (
-                $1,$2,$3,NOW()
-            )
-            RETURNING *;
-            `,
+                    ) {
 
-            [
-                chatId,
-                senderId,
-                message,
-            ],
+                        detectedType = "video";
 
-        );
+                    }
 
-        const createdMessage =
-        messageResult.rows[0];
+                }
 
-        //////////////////////////////////////////////////////
-        // FILE URL
-        //////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////
+                // AUTO DETECT AUDIO / VOICE
+                //////////////////////////////////////////////////////
 
-        const baseUrl =
-            process.env.BASE_URL ||
-            `${req.protocol}://${req.get("host")}`;
+                if (!detectedType) {
 
-        const fileUrl =
-            `${baseUrl}/${req.file.path.replace(/\\/g,"/")}`;
+                    if (
 
-        //////////////////////////////////////////////////////
-        // SAVE MEDIA
-        //////////////////////////////////////////////////////
+                        mime.startsWith("audio/") ||
 
-        const media =
-        await mediaMessageService.save({
+                        mime === "application/octet-stream"
 
-            messageId:
-            createdMessage.id,
+                    ) {
 
-            chatId,
+                        if (
 
-            senderId,
+                            [
 
-            mediaType:
-            detectedType,
+                                ".opus",
+                                ".amr",
+                                ".aac",
+                                ".m4a",
+                                ".oga",
+                                ".ogg"
 
-            fileName:
-            req.file.filename,
+                            ].includes(extension)
 
-            originalName:
-            req.file.originalname,
+                        ) {
 
-            filePath:
-            req.file.path,
+                            detectedType = "voice";
 
-            fileUrl,
+                        }
 
-            mimeType:
-            req.file.mimetype,
+                        else {
 
-            fileSize:
-            req.file.size,
+                            detectedType = "audio";
 
-        });
+                        }
 
-        //////////////////////////////////////////////////////
-        // REALTIME
-        //////////////////////////////////////////////////////
+                    }
 
-        eventDispatcher.chat({
+                }
 
-            receiverId,
+                //////////////////////////////////////////////////////
+                // EVERYTHING ELSE IS A DOCUMENT
+                //////////////////////////////////////////////////////
 
-            message: {
+                if (!detectedType) {
 
-                ...createdMessage,
+                    detectedType = "document";
 
-                media,
+                }
 
-            },
+                //////////////////////////////////////////////////////
+                // FILE URL
+                //////////////////////////////////////////////////////
 
-        });
+                const baseUrl =
 
-        //////////////////////////////////////////////////////
-        // RESPONSE
-        //////////////////////////////////////////////////////
+                    process.env.BASE_URL ||
 
-        return res.status(201).json({
+                    `${req.protocol}://${req.get("host")}`;
 
-            success: true,
+                const fileUrl =
 
-            message: {
+                    `${baseUrl}/${file.path.replace(/\\/g, "/")}`;
 
-                ...createdMessage,
+                    //////////////////////////////////////////////////////
+                            // SAVE MESSAGE
+                            //////////////////////////////////////////////////////
 
-                media,
+                            const messageResult =
 
-            },
+                            await pool.query(
 
-        });
+                                `
+                                INSERT INTO messages
+                                (
+                                    chat_id,
+                                    sender_id,
+                                    message,
+                                    message_type,
+                                    media_url,
+                                    thumbnail_url,
+                                    file_name,
+                                    file_size,
+                                    duration,
+                                    reply_to,
+                                    created_at
+                                )
+                                VALUES
+                                (
+                                    $1,
+                                    $2,
+                                    $3,
+                                    $4,
+                                    $5,
+                                    $6,
+                                    $7,
+                                    $8,
+                                    $9,
+                                    $10,
+                                    NOW()
+                                )
+                                RETURNING *;
+                                `,
 
-    }
+                                [
 
-    catch (error) {
+                                    chatId,
 
-        console.error(error);
+                                    senderId,
 
-        return res.status(500).json({
+                                    message,
 
-            success: false,
+                                    detectedType,
 
-            error: error.message,
+                                    fileUrl,
 
-        });
+                                    thumbnailUrl,
 
-    }
+                                    file.originalname,
 
-};
+                                    file.size,
 
-module.exports =
-createMediaMessageController;
+                                    duration,
+
+                                    replyTo,
+
+                                ],
+
+                            );
+
+                            const createdMessage =
+
+                                messageResult.rows[0];
+
+                            //////////////////////////////////////////////////////
+                            // SAVE MEDIA DETAILS
+                            //////////////////////////////////////////////////////
+
+                            const media =
+
+                            await mediaMessageService.save({
+
+                                messageId:
+                                    createdMessage.id,
+
+                                chatId,
+
+                                senderId,
+
+                                mediaType:
+                                    detectedType,
+
+                                fileName:
+                                    file.filename,
+
+                                originalName:
+                                    file.originalname,
+
+                                filePath:
+                                    file.path.replace(/\\/g, "/"),
+
+                                fileUrl,
+
+                                mimeType:
+                                    file.mimetype,
+
+                                fileSize:
+                                    file.size,
+
+                            });
+
+                            //////////////////////////////////////////////////////
+                            // BUILD COMPLETE MESSAGE
+                            //////////////////////////////////////////////////////
+
+                            const fullMessage = {
+
+                                ...createdMessage,
+
+                                sender_name: "",
+
+                                username: "",
+
+                                profile_image: "",
+
+                                media_type:
+                                    detectedType,
+
+                                media_url:
+                                    fileUrl,
+
+                                file_url:
+                                    fileUrl,
+
+                                file_name:
+                                    file.filename,
+
+                                original_name:
+                                    file.originalname,
+
+                                mime_type:
+                                    file.mimetype,
+
+                                file_size:
+                                    file.size,
+
+                                duration,
+
+                                image_path:
+                                    detectedType === "image"
+                                        ? fileUrl
+                                        : "",
+
+                                video_path:
+                                    detectedType === "video"
+                                        ? fileUrl
+                                        : "",
+
+                                audio_path:
+                                    detectedType === "audio" ||
+                                    detectedType === "voice"
+                                        ? fileUrl
+                                        : "",
+
+                                document_path:
+                                    detectedType === "document"
+                                        ? fileUrl
+                                        : "",
+
+                                is_image_message:
+                                    detectedType === "image",
+
+                                is_video_message:
+                                    detectedType === "video",
+
+                                is_voice_message:
+                                    detectedType === "voice",
+
+                                media,
+
+                            };
+
+                            //////////////////////////////////////////////////////
+                                    // SEND REALTIME TO RECEIVER
+                                    //////////////////////////////////////////////////////
+
+                                    eventDispatcher.chat({
+
+                                        receiverId,
+
+                                        message: fullMessage,
+
+                                    });
+
+                                    //////////////////////////////////////////////////////
+                                    // SEND REALTIME TO SENDER
+                                    //////////////////////////////////////////////////////
+
+                                    eventDispatcher.chat({
+
+                                        receiverId: senderId,
+
+                                        message: fullMessage,
+
+                                    });
+
+                                    //////////////////////////////////////////////////////
+                                    // RESPONSE
+                                    //////////////////////////////////////////////////////
+
+                                    return res.status(201).json({
+
+                                        success: true,
+
+                                        message: fullMessage,
+
+                                    });
+
+                                }
+
+                                catch (error) {
+
+                                    console.error(
+
+                                        "Create Media Message Error:",
+
+                                        error,
+
+                                    );
+
+                                    return res.status(500).json({
+
+                                        success: false,
+
+                                        error: error.message,
+
+                                        stack:
+                                            process.env.NODE_ENV === "development"
+                                                ? error.stack
+                                                : undefined,
+
+                                    });
+
+                                }
+
+                            };
+
+                            module.exports =
+                            createMediaMessageController;

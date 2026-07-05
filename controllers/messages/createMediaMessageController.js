@@ -1,4 +1,5 @@
-const pool = require("../../config/db");
+const pool =
+require("../../config/db");
 
 const eventDispatcher =
 require("../../realtime/eventDispatcher");
@@ -6,6 +7,10 @@ require("../../realtime/eventDispatcher");
 const createMediaMessage = async (req, res) => {
 
     try {
+
+        //////////////////////////////////////////////////////
+        // BODY
+        //////////////////////////////////////////////////////
 
         const {
 
@@ -15,13 +20,23 @@ const createMediaMessage = async (req, res) => {
 
             message = "",
 
-            message_type,
+            message_type = "document",
 
             media_url,
 
+            thumbnail_url = "",
+
             file_name = "",
 
+            original_name = "",
+
+            mime_type = "",
+
             file_size = 0,
+
+            duration = 0,
+
+            reply_to = null,
 
         } = req.body;
 
@@ -29,20 +44,28 @@ const createMediaMessage = async (req, res) => {
         // VALIDATION
         //////////////////////////////////////////////////////
 
-        if (!media_url) {
+        if (
+
+            !sender_id ||
+
+            !receiver_id ||
+
+            !media_url
+
+        ) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "media_url is required",
+                error: "Missing required fields.",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // FIND OR CREATE CHAT
+        // FIND CHAT
         //////////////////////////////////////////////////////
 
         let chat = await pool.query(
@@ -51,206 +74,411 @@ const createMediaMessage = async (req, res) => {
             SELECT id
             FROM chats
             WHERE
+
             (
-                user_one_id=$1
-                AND user_two_id=$2
+
+                user_one_id = $1
+
+                AND user_two_id = $2
+
             )
+
             OR
+
             (
-                user_one_id=$2
-                AND user_two_id=$1
+
+                user_one_id = $2
+
+                AND user_two_id = $1
+
             )
+
             LIMIT 1
             `,
+
             [
+
                 sender_id,
+
                 receiver_id,
-            ]
+
+            ],
 
         );
 
         let chatId;
 
-        if (chat.rows.length == 0) {
-
-            const created = await pool.query(
-
-                `
-                INSERT INTO chats
-                (
-                    user_one_id,
-                    user_two_id
-                )
-                VALUES
-                (
-                    $1,
-                    $2
-                )
-                RETURNING id
-                `,
-                [
-                    sender_id,
-                    receiver_id,
-                ]
-
-            );
-
-            chatId = created.rows[0].id;
-
-        } else {
-
-            chatId = chat.rows[0].id;
-
-        }
-
         //////////////////////////////////////////////////////
-        // SAVE MESSAGE
-        //////////////////////////////////////////////////////
+                // CREATE CHAT IF NEEDED
+                //////////////////////////////////////////////////////
 
-        const inserted = await pool.query(
+                if (chat.rows.length === 0) {
 
-            `
-            INSERT INTO messages
-            (
-                chat_id,
-                sender_id,
-                message,
-                message_type,
-                media_url,
-                file_name,
-                file_size
-            )
-            VALUES
-            (
-                $1,
-                $2,
-                $3,
-                $4,
-                $5,
-                $6,
-                $7
-            )
-            RETURNING *
-            `,
-            [
-                chatId,
-                sender_id,
-                message,
-                message_type,
-                media_url,
-                file_name,
-                file_size,
-            ]
+                    const created = await pool.query(
 
-        );
+                        `
+                        INSERT INTO chats
+                        (
+                            user_one_id,
+                            user_two_id
+                        )
+                        VALUES
+                        (
+                            $1,
+                            $2
+                        )
+                        RETURNING id
+                        `,
 
-        //////////////////////////////////////////////////////
-        // LOAD COMPLETE MESSAGE
-        //////////////////////////////////////////////////////
+                        [
 
-        const fullMessage = await pool.query(
+                            sender_id,
 
-            `
-            SELECT
+                            receiver_id,
 
-                m.*,
+                        ],
 
-                u.full_name AS sender_name,
+                    );
 
-                u.username,
+                    chatId =
 
-                u.profile_image
+                        created.rows[0].id;
 
-            FROM messages m
+                }
 
-            JOIN users u
-            ON u.id=m.sender_id
+                else {
 
-            WHERE m.id=$1
-            `,
-            [
-                inserted.rows[0].id,
-            ]
+                    chatId =
 
-        );
+                        chat.rows[0].id;
 
-        const messageData = fullMessage.rows[0];
+                }
 
-        messageData.is_image_message =
-            messageData.message_type === "image";
+                //////////////////////////////////////////////////////
+                // SAVE MESSAGE
+                //////////////////////////////////////////////////////
 
-        messageData.is_video_message =
-            messageData.message_type === "video";
+                const inserted = await pool.query(
 
-        messageData.is_voice_message =
-            messageData.message_type === "voice";
+                    `
+                    INSERT INTO messages
+                    (
 
-        messageData.is_audio_message =
-            messageData.message_type === "audio";
+                        chat_id,
 
-        messageData.is_document_message =
-            messageData.message_type === "document";
+                        sender_id,
 
-        messageData.image_path =
-            messageData.media_url;
+                        message,
 
-        messageData.video_path =
-            messageData.media_url;
+                        message_type,
 
-        messageData.audio_path =
-            messageData.media_url;
+                        media_url,
 
-        messageData.document_path =
-            messageData.media_url;
+                        thumbnail_url,
 
-        //////////////////////////////////////////////////////
-        // REALTIME
-        //////////////////////////////////////////////////////
+                        file_name,
 
-        eventDispatcher.chat({
+                        file_size,
 
-            receiverId: receiver_id,
+                        duration,
 
-            ...messageData,
+                        reply_to,
 
-        });
+                        created_at
 
-        eventDispatcher.chat({
+                    )
 
-            receiverId: sender_id,
+                    VALUES
+                    (
 
-            ...messageData,
+                        $1,
 
-        });
+                        $2,
 
-        //////////////////////////////////////////////////////
-        // RESPONSE
-        //////////////////////////////////////////////////////
+                        $3,
 
-        return res.status(201).json({
+                        $4,
 
-            success: true,
+                        $5,
 
-            message: messageData,
+                        $6,
 
-        });
+                        $7,
 
-    }
+                        $8,
 
-    catch (error) {
+                        $9,
 
-        console.error(error);
+                        $10,
 
-        return res.status(500).json({
+                        NOW()
 
-            success: false,
+                    )
 
-            error: error.message,
+                    RETURNING *;
+                    `,
 
-        });
+                    [
 
-    }
+                        chatId,
 
-};
+                        sender_id,
 
-module.exports = createMediaMessage;
+                        message,
+
+                        message_type,
+
+                        media_url,
+
+                        thumbnail_url,
+
+                        file_name,
+
+                        file_size,
+
+                        duration,
+
+                        reply_to,
+
+                    ],
+
+                );
+
+                const createdMessage =
+
+                    inserted.rows[0];
+
+                    //////////////////////////////////////////////////////
+                            // LOAD COMPLETE MESSAGE
+                            //////////////////////////////////////////////////////
+
+                            const fullMessage = await pool.query(
+
+                                `
+                                SELECT
+
+                                    m.*,
+
+                                    u.full_name AS sender_name,
+
+                                    u.username,
+
+                                    u.profile_image
+
+                                FROM messages m
+
+                                JOIN users u
+
+                                ON u.id = m.sender_id
+
+                                WHERE m.id = $1
+                                `,
+
+                                [
+
+                                    createdMessage.id,
+
+                                ],
+
+                            );
+
+                            const messageData =
+
+                                fullMessage.rows[0];
+
+                            //////////////////////////////////////////////////////
+                            // MEDIA TYPE
+                            //////////////////////////////////////////////////////
+
+                            messageData.media_type =
+                                messageData.message_type;
+
+                                messageData.message_type =
+                                    message_type;
+
+                            //////////////////////////////////////////////////////
+                            // FILE INFORMATION
+                            //////////////////////////////////////////////////////
+
+                            messageData.file_url =
+
+                                messageData.media_url;
+
+                            messageData.original_name =
+
+                                original_name;
+
+                            messageData.mime_type =
+
+                                mime_type;
+
+                            messageData.thumbnail_url =
+
+                                thumbnail_url;
+
+                            messageData.duration =
+
+                                duration;
+
+                            //////////////////////////////////////////////////////
+                            // IMAGE
+                            //////////////////////////////////////////////////////
+
+                            messageData.is_image_message =
+
+                                message_type === "image";
+
+                            messageData.image_path =
+
+                                message_type === "image"
+
+                                    ? media_url
+
+                                    : "";
+
+                            //////////////////////////////////////////////////////
+                            // VIDEO
+                            //////////////////////////////////////////////////////
+
+                            messageData.is_video_message =
+
+                                message_type === "video";
+
+                            messageData.video_path =
+
+                                message_type === "video"
+
+                                    ? media_url
+
+                                    : "";
+
+                            //////////////////////////////////////////////////////
+                            // VOICE
+                            //////////////////////////////////////////////////////
+
+                            messageData.is_voice_message =
+
+                                message_type === "voice";
+
+                            //////////////////////////////////////////////////////
+                            // AUDIO
+                            //////////////////////////////////////////////////////
+
+                            messageData.is_audio_message =
+
+                                message_type === "audio";
+
+                            messageData.audio_path =
+
+                                message_type === "voice" ||
+
+                                message_type === "audio"
+
+                                    ? media_url
+
+                                    : "";
+
+                            //////////////////////////////////////////////////////
+                            // DOCUMENT
+                            //////////////////////////////////////////////////////
+
+                            messageData.is_document_message =
+
+                                message_type === "document";
+
+                            messageData.document_path =
+
+                                message_type === "document"
+
+                                    ? media_url
+
+                                    : "";
+
+                            //////////////////////////////////////////////////////
+                            // COMPLETE MEDIA OBJECT
+                            //////////////////////////////////////////////////////
+
+                           messageData.media = {
+
+                               type: message_type,
+
+                               fileName: file_name,
+
+                               originalName: original_name,
+
+                               path: media_url,
+
+                               url: media_url,
+
+                               mimeType: mime_type,
+
+                               size: file_size,
+
+                               duration,
+
+                               thumbnail: thumbnail_url,
+
+                           };
+
+                            //////////////////////////////////////////////////////
+                                    // SEND TO RECEIVER
+                                    //////////////////////////////////////////////////////
+
+                                    eventDispatcher.chat({
+
+                                        receiverId: receiver_id,
+
+                                        message: messageData,
+
+                                    });
+
+                                    //////////////////////////////////////////////////////
+                                    // SEND TO SENDER
+                                    //////////////////////////////////////////////////////
+
+                                    eventDispatcher.chat({
+
+                                        receiverId: sender_id,
+
+                                        message: messageData,
+
+                                    });
+
+                                    //////////////////////////////////////////////////////
+                                    // RESPONSE
+                                    //////////////////////////////////////////////////////
+
+                                    return res.status(201).json({
+
+                                        success: true,
+
+                                        message: messageData,
+
+                                    });
+
+                                }
+
+                                catch (error) {
+
+                                    console.error(
+
+                                        "Create Media Message Error:",
+
+                                        error,
+
+                                    );
+
+                                    return res.status(500).json({
+
+                                        success: false,
+
+                                        error: error.message,
+
+                                    });
+
+                                }
+
+                            };
+
+                            module.exports =
+                            createMediaMessage;
