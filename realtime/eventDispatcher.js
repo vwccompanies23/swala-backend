@@ -9,11 +9,12 @@ class EventDispatcher {
 
     chat(data) {
 
-        const socket = socketRegistry.getSocket(
-            data.receiverId,
-        );
+        const sockets =
+            socketRegistry.getSockets(
+                data.receiverId,
+            );
 
-        if (socket) {
+        for (const socket of sockets) {
 
             socket.emit(
                 "receive-message",
@@ -23,29 +24,25 @@ class EventDispatcher {
         }
 
     }
+
     //////////////////////////////////////////////////////
     // DELETE MESSAGE
     //////////////////////////////////////////////////////
 
     deleteMessage(data) {
 
-        const socket =
-            socketRegistry.getSocket(
+        const sockets =
+            socketRegistry.getSockets(
                 data.receiverId,
             );
 
-        if (socket) {
+        for (const socket of sockets) {
 
             socket.emit(
-
                 "message-deleted",
-
                 {
-
                     messageId: data.messageId,
-
                 },
-
             );
 
         }
@@ -64,12 +61,12 @@ class EventDispatcher {
 
         for (const memberId of data.members) {
 
-            const socket =
-                socketRegistry.getSocket(
+            const sockets =
+                socketRegistry.getSockets(
                     memberId,
                 );
 
-            if (socket) {
+            for (const socket of sockets) {
 
                 socket.emit(
                     "group-message",
@@ -94,12 +91,12 @@ class EventDispatcher {
 
         for (const memberId of data.members) {
 
-            const socket =
-                socketRegistry.getSocket(
+            const sockets =
+                socketRegistry.getSockets(
                     memberId,
                 );
 
-            if (socket) {
+            for (const socket of sockets) {
 
                 socket.emit(
                     "broadcast-message",
@@ -124,12 +121,12 @@ class EventDispatcher {
 
         for (const memberId of data.members) {
 
-            const socket =
-                socketRegistry.getSocket(
+            const sockets =
+                socketRegistry.getSockets(
                     memberId,
                 );
 
-            if (socket) {
+            for (const socket of sockets) {
 
                 socket.emit(
                     "community-update",
@@ -154,12 +151,12 @@ class EventDispatcher {
 
         for (const memberId of data.members) {
 
-            const socket =
-                socketRegistry.getSocket(
+            const sockets =
+                socketRegistry.getSockets(
                     memberId,
                 );
 
-            if (socket) {
+            for (const socket of sockets) {
 
                 socket.emit(
                     "channel-update",
@@ -184,12 +181,12 @@ class EventDispatcher {
 
         for (const viewerId of data.viewers) {
 
-            const socket =
-                socketRegistry.getSocket(
+            const sockets =
+                socketRegistry.getSockets(
                     viewerId,
                 );
 
-            if (socket) {
+            for (const socket of sockets) {
 
                 socket.emit(
                     "status-update",
@@ -208,12 +205,12 @@ class EventDispatcher {
 
     call(data) {
 
-        const socket =
-            socketRegistry.getSocket(
+        const sockets =
+            socketRegistry.getSockets(
                 data.receiverId,
             );
 
-        if (socket) {
+        for (const socket of sockets) {
 
             socket.emit(
                 "incoming-call",
@@ -242,6 +239,6 @@ class EventDispatcher {
 
     }
 
-  }
+}
 
 module.exports = new EventDispatcher();

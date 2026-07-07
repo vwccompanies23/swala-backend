@@ -6,15 +6,13 @@ class SocketRegistry {
 
     }
 
-    register({
+    //////////////////////////////////////////////////////
+    // REGISTER
+    //////////////////////////////////////////////////////
 
-        userId,
+    register({ userId, socket }) {
 
-        socket,
-
-    }) {
-
-        userId = userId.toString();
+        userId = String(userId);
 
         let devices = this.users.get(userId);
 
@@ -22,43 +20,37 @@ class SocketRegistry {
 
             devices = new Map();
 
-            this.users.set(
-
-                userId,
-
-                devices,
-
-            );
+            this.users.set(userId, devices);
 
         }
 
-        devices.set(
+        devices.set(socket.id, {
 
-            socket.id,
+            socketId: socket.id,
 
-            {
+            socket,
 
-                socketId: socket.id,
+            connectedAt: new Date(),
 
-                socket,
+            lastSeen: new Date(),
 
-                connectedAt: new Date(),
+        });
 
-                lastSeen: new Date(),
-
-            },
-
+        console.log(
+            `🟢 User ${userId} connected (${devices.size} device(s))`
         );
 
     }
 
+    //////////////////////////////////////////////////////
+    // UNREGISTER
+    //////////////////////////////////////////////////////
+
     unregister(userId, socketId) {
 
-        userId = userId.toString();
+        userId = String(userId);
 
-        const devices =
-
-            this.users.get(userId);
+        const devices = this.users.get(userId);
 
         if (!devices) return;
 
@@ -68,43 +60,47 @@ class SocketRegistry {
 
             this.users.delete(userId);
 
+            console.log(`🔴 User ${userId} offline`);
+
+        } else {
+
+            console.log(
+                `🟡 User ${userId} has ${devices.size} device(s) remaining`
+            );
+
         }
 
     }
+
+    //////////////////////////////////////////////////////
+    // GET USER DEVICES
+    //////////////////////////////////////////////////////
 
     get(userId) {
 
-        userId = userId.toString();
-
-        return this.users.get(userId);
+        return this.users.get(String(userId));
 
     }
+
+    //////////////////////////////////////////////////////
+    // GET FIRST SOCKET
+    //////////////////////////////////////////////////////
 
     getSocket(userId) {
 
-        userId = userId.toString();
+        const sockets = this.getSockets(userId);
 
-        const devices =
-
-            this.users.get(userId);
-
-        if (!devices) {
-
-            return null;
-
-        }
-
-        return [...devices.values()][0]?.socket;
+        return sockets.length ? sockets[0] : null;
 
     }
 
+    //////////////////////////////////////////////////////
+    // GET ALL SOCKETS
+    //////////////////////////////////////////////////////
+
     getSockets(userId) {
 
-        userId = userId.toString();
-
-        const devices =
-
-            this.users.get(userId);
+        const devices = this.users.get(String(userId));
 
         if (!devices) {
 
@@ -112,41 +108,33 @@ class SocketRegistry {
 
         }
 
-        return [...devices.values()]
-
-            .map(
-
-                device => device.socket,
-
-            );
-
-    }
-
-    has(userId) {
-
-        return this.users.has(
-
-            userId.toString(),
-
+        return [...devices.values()].map(
+            device => device.socket
         );
 
     }
 
+    //////////////////////////////////////////////////////
+    // USER ONLINE
+    //////////////////////////////////////////////////////
+
+    has(userId) {
+
+        return this.users.has(String(userId));
+
+    }
+
+    //////////////////////////////////////////////////////
+    // TOUCH
+    //////////////////////////////////////////////////////
+
     touch(userId, socketId) {
 
-        const devices =
-
-            this.users.get(
-
-                userId.toString(),
-
-            );
+        const devices = this.users.get(String(userId));
 
         if (!devices) return;
 
-        const device =
-
-            devices.get(socketId);
+        const device = devices.get(socketId);
 
         if (!device) return;
 
@@ -154,27 +142,59 @@ class SocketRegistry {
 
     }
 
+    //////////////////////////////////////////////////////
+    // REMOVE SOCKET
+    //////////////////////////////////////////////////////
+
+    removeSocket(socketId) {
+
+        for (const [userId, devices] of this.users.entries()) {
+
+            if (devices.has(socketId)) {
+
+                devices.delete(socketId);
+
+                if (devices.size === 0) {
+
+                    this.users.delete(userId);
+
+                    console.log(`🔴 User ${userId} offline`);
+
+                }
+
+                break;
+
+            }
+
+        }
+
+    }
+
+    //////////////////////////////////////////////////////
+    // ALL USERS
+    //////////////////////////////////////////////////////
+
     allUsers() {
 
         return [...this.users.keys()];
 
     }
 
+    //////////////////////////////////////////////////////
+    // ONLINE DEVICES
+    //////////////////////////////////////////////////////
+
     onlineCount() {
 
-        let count = 0;
+        let total = 0;
 
-        this.users.forEach(
+        for (const devices of this.users.values()) {
 
-            devices => {
+            total += devices.size;
 
-                count += devices.size;
+        }
 
-            },
-
-        );
-
-        return count;
+        return total;
 
     }
 

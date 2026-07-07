@@ -1,9 +1,6 @@
 const registerCallSocket =
 require("./callSocket");
 
-const registerChatSocket =
-require("./chatSocket");
-
 const registerNotificationSocket =
 require("./notificationSocket");
 
@@ -29,11 +26,6 @@ function socketEvents(io) {
         );
 
         registerCallSocket(
-            io,
-            socket,
-        );
-
-        registerChatSocket(
             io,
             socket,
         );

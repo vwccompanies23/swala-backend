@@ -1,7 +1,6 @@
 const socketRegistry = require("./socketRegistry");
 const presenceService = require("./presenceService");
 const roomService = require("./roomService");
-const notificationService = require("./notificationService");
 const eventDispatcher = require("./eventDispatcher");
 
 class RealtimeService {
@@ -12,81 +11,155 @@ class RealtimeService {
 
             console.log(`🟢 Socket Connected: ${socket.id}`);
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // REGISTER USER
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
-            socket.on("register", (data) => {
+            socket.on("register", ({ userId }) => {
 
-                if (!data?.userId) {
-                    return;
-                }
+                if (!userId) return;
+
+                socket.userId = String(userId);
 
                 socketRegistry.register({
 
-                    userId: data.userId,
+                    userId,
 
                     socket,
 
                 });
 
-                presenceService.userOnline(
-                    data.userId,
-                );
+                presenceService.userOnline(userId);
+
+                console.log(`✅ Registered User ${userId}`);
 
             });
 
-            ///////////////////////////////////////////
-            // DISCONNECT
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
+            // REGISTER CHAT
+            //////////////////////////////////////////////////////
 
-            socket.on("disconnect", () => {
+            socket.on("register-chat", (userId) => {
 
-                const users =
-                    socketRegistry.allUsers();
+                socket.userId = String(userId);
 
-                for (const userId of users) {
+                socketRegistry.register({
 
-                    const client =
-                        socketRegistry.get(userId);
+                    userId,
 
-                    if (
+                    socket,
 
-                        client &&
+                });
 
-                        client.socketId === socket.id
-
-                    ) {
-
-                        socketRegistry.unregister(userId);
-
-                        presenceService.userOffline(
-                            userId,
-                        );
-
-                    }
-
-                }
-
-                console.log(
-                    `🔴 Socket Disconnected: ${socket.id}`,
-                );
+                console.log(`💬 Chat User ${userId} connected`);
 
             });
 
-            ///////////////////////////////////////////
-            // CHAT
-            ///////////////////////////////////////////
+          //////////////////////////////////////////////////////
+          // SEND MESSAGE
+          //////////////////////////////////////////////////////
 
-            socket.on("chat", (data) => {
+          socket.on("send-message", (data) => {
 
-                eventDispatcher.chat(data);
+              console.log("========== SEND MESSAGE ==========");
 
-            });
+              console.log(data);
 
-            ///////////////////////////////////////////
+              eventDispatcher.chat({
+
+                  receiverId: data.receiverId,
+
+                  ...data.message,
+
+              });
+
+          });
+
+          //////////////////////////////////////////////////////
+          // TYPING
+          //////////////////////////////////////////////////////
+
+          socket.on("typing", (data) => {
+
+              eventDispatcher.chat({
+
+                  receiverId: data.receiverId,
+
+                  senderId: data.senderId,
+
+                  event: "user-typing",
+
+              });
+
+          });
+
+          //////////////////////////////////////////////////////
+          // STOP TYPING
+          //////////////////////////////////////////////////////
+
+          socket.on("stop-typing", (data) => {
+
+              eventDispatcher.chat({
+
+                  receiverId: data.receiverId,
+
+                  senderId: data.senderId,
+
+                  event: "user-stop-typing",
+
+              });
+
+          });
+
+          //////////////////////////////////////////////////////
+          // MESSAGE DELIVERED
+          //////////////////////////////////////////////////////
+
+          socket.on("message-delivered", (data) => {
+
+              eventDispatcher.chat({
+
+                  receiverId: data.senderId,
+
+                  event: "message-delivered",
+
+                  ...data,
+
+              });
+
+          });
+
+          //////////////////////////////////////////////////////
+          // MESSAGE SEEN
+          //////////////////////////////////////////////////////
+
+          socket.on("message-seen", (data) => {
+
+              eventDispatcher.chat({
+
+                  receiverId: data.senderId,
+
+                  event: "message-seen",
+
+                  ...data,
+
+              });
+
+          });
+
+          //////////////////////////////////////////////////////
+          // DELETE MESSAGE
+          //////////////////////////////////////////////////////
+
+          socket.on("message-deleted", (data) => {
+
+              eventDispatcher.deleteMessage(data);
+
+          });
+
+            //////////////////////////////////////////////////////
             // GROUP
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("group", (data) => {
 
@@ -94,9 +167,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // COMMUNITY
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("community", (data) => {
 
@@ -104,9 +177,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // CHANNEL
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("channel", (data) => {
 
@@ -114,9 +187,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // BROADCAST
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("broadcast", (data) => {
 
@@ -124,9 +197,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // CALL
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("call", (data) => {
 
@@ -134,9 +207,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // STATUS
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("status", (data) => {
 
@@ -144,9 +217,9 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // NOTIFICATION
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
             socket.on("notification", (data) => {
 
@@ -154,29 +227,59 @@ class RealtimeService {
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // JOIN ROOM
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
-            socket.on("join-room", (data) => {
+            socket.on("join-room", ({ room }) => {
 
-                roomService.join(
-                    socket,
-                    data.room,
-                );
+                roomService.join(socket, room);
 
             });
 
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
             // LEAVE ROOM
-            ///////////////////////////////////////////
+            //////////////////////////////////////////////////////
 
-            socket.on("leave-room", (data) => {
+            socket.on("leave-room", ({ room }) => {
 
-                roomService.leave(
-                    socket,
-                    data.room,
-                );
+                roomService.leave(socket, room);
+
+            });
+
+            //////////////////////////////////////////////////////
+            // DISCONNECT
+            //////////////////////////////////////////////////////
+
+            socket.on("disconnect", () => {
+
+                console.log(`🔴 Socket Disconnected: ${socket.id}`);
+
+                if (socket.userId) {
+
+                    socketRegistry.unregister(
+
+                        socket.userId,
+
+                        socket.id,
+
+                    );
+
+                    if (
+
+                        !socketRegistry.has(socket.userId)
+
+                    ) {
+
+                        presenceService.userOffline(
+
+                            socket.userId,
+
+                        );
+
+                    }
+
+                }
 
             });
 

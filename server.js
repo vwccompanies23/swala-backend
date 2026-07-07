@@ -5,13 +5,10 @@ require('./config/db');
 require("./firebase/firebaseAdmin");
 
 const path = require("path");
-
 const http = require('http');
-const {
-  initializeSocket,
-} = require('./socket/socketServer');
-const socketEvents =
-require('./socket/socketEvents');
+
+const { Server } = require("socket.io");
+
 
 const createUsersTable = require('./models/users/userModel');
 const createChatsTable = require('./models/chats/chatModel');
@@ -372,9 +369,20 @@ const realtimeService =
 require("./realtime/realtimeService");
 
 // Initialize Socket.IO
-const io = initializeSocket(server);
-socketEvents(io);
-// Initialize Swala Realtime Engine
+const io = new Server(server, {
+
+  cors: {
+
+    origin: "*",
+
+    methods: ["GET", "POST"],
+
+  },
+
+  transports: ["websocket"],
+
+});
+
 realtimeService.initialize(io);
 // Start Server
 server.listen(PORT, () => {
