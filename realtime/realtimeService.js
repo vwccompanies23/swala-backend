@@ -197,15 +197,25 @@ class RealtimeService {
 
             });
 
-            //////////////////////////////////////////////////////
-            // CALL
-            //////////////////////////////////////////////////////
+           //////////////////////////////////////////////////////
+           // CALL USER
+           //////////////////////////////////////////////////////
 
-            socket.on("call", (data) => {
+           socket.on("call-user", (data) => {
 
-                eventDispatcher.call(data);
+               eventDispatcher.call(data);
 
-            });
+           });
+
+           //////////////////////////////////////////////////////
+           // CALL GROUP
+           //////////////////////////////////////////////////////
+
+           socket.on("call-group", (data) => {
+
+               eventDispatcher.groupCall(data);
+
+           });
 
             //////////////////////////////////////////////////////
             // STATUS
@@ -226,6 +236,204 @@ class RealtimeService {
                 eventDispatcher.notification(data);
 
             });
+
+            //////////////////////////////////////////////////////
+                        // WEBRTC OFFER
+                        //////////////////////////////////////////////////////
+
+                        socket.on("webrtc-offer", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "webrtc-offer",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // WEBRTC ANSWER
+                        //////////////////////////////////////////////////////
+
+                        socket.on("webrtc-answer", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "webrtc-answer",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // ICE CANDIDATE
+                        //////////////////////////////////////////////////////
+
+                        socket.on("ice-candidate", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "ice-candidate",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // ANSWER CALL
+                        //////////////////////////////////////////////////////
+
+                        socket.on("call-answered", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.callerId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "call-answered",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // REJECT CALL
+                        //////////////////////////////////////////////////////
+
+                        socket.on("call-rejected", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.callerId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "call-rejected",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // END CALL
+                        //////////////////////////////////////////////////////
+
+                        socket.on("call-ended", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "call-ended",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // TOGGLE CAMERA
+                        //////////////////////////////////////////////////////
+
+                        socket.on("toggle-camera", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "toggle-camera",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // TOGGLE MUTE
+                        //////////////////////////////////////////////////////
+
+                        socket.on("toggle-mute", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "toggle-mute",
+                                    data,
+                                );
+
+                            }
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // SWITCH CAMERA
+                        //////////////////////////////////////////////////////
+
+                        socket.on("switch-camera", (data) => {
+
+                            const sockets =
+                                socketRegistry.getSockets(
+                                    data.receiverId,
+                                );
+
+                            for (const socket of sockets) {
+
+                                socket.emit(
+                                    "switch-camera",
+                                    data,
+                                );
+
+                            }
+
+                        });
 
             //////////////////////////////////////////////////////
             // JOIN ROOM

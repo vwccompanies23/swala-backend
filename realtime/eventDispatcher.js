@@ -220,6 +220,39 @@ class EventDispatcher {
         }
 
     }
+    //////////////////////////////////////////////////////
+    // GROUP CALL
+    //////////////////////////////////////////////////////
+
+    groupCall(data) {
+
+        if (!data.members) {
+            return;
+        }
+
+        for (const memberId of data.members) {
+
+            if (String(memberId) === String(data.callerId)) {
+                continue;
+            }
+
+            const sockets =
+                socketRegistry.getSockets(
+                    memberId,
+                );
+
+            for (const socket of sockets) {
+
+                socket.emit(
+                    "incoming-call",
+                    data,
+                );
+
+            }
+
+        }
+
+    }
 
     //////////////////////////////////////////////////////
     // NOTIFICATION
