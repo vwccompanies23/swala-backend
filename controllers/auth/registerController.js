@@ -13,29 +13,32 @@ const registerController = async (req, res) => {
 
     try {
 
-        const {
+      const {
 
-            full_name,
+          full_name,
 
-            username,
+          phone,
 
-            phone,
+          password,
 
-            email,
+      } = req.body;
 
-            password,
+      const username =
+          "@" +
+          full_name
+              .toLowerCase()
+              .replace(/\s+/g, "") +
+          Math.floor(Math.random() * 10000);
 
-            country,
+      const email = null;
 
-            language,
+      const country = null;
 
-        } = req.body;
+      const language = "en";
 
         if (
 
             !full_name ||
-
-            !username ||
 
             !phone ||
 
