@@ -1,14 +1,40 @@
 const pool = require("../../config/db");
 
 const normalizePhone = (phone) => {
-    return (phone || "").replace(/\D/g, "");
+
+    return (phone || "")
+
+        .replace(/\D/g, "");
+
 };
 
 const syncContacts = async (req, res) => {
 
     try {
 
-        const { contacts } = req.body;
+        const {
+
+            user_id,
+
+            contacts,
+
+        } = req.body;
+
+        //////////////////////////////////////////////////////
+        // VALIDATION
+        //////////////////////////////////////////////////////
+
+        if (!user_id) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                error: "user_id is required",
+
+            });
+
+        }
 
         if (!Array.isArray(contacts)) {
 
@@ -23,41 +49,86 @@ const syncContacts = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
+        // REMOVE OLD CONTACTS
+        //////////////////////////////////////////////////////
+
+        await pool.query(
+
+            `
+            DELETE FROM contacts
+            WHERE user_id = $1
+            `,
+
+            [
+
+                user_id,
+
+            ],
+
+        );
+
+        //////////////////////////////////////////////////////
         // NORMALIZE CONTACTS
         //////////////////////////////////////////////////////
 
         const normalizedContacts = contacts.map(contact => ({
 
-            name: contact.name,
+            name:
 
-            phone: contact.phone,
+            contact.name,
 
-            normalized: normalizePhone(contact.phone),
+            phone:
+
+            contact.phone,
+
+            normalized:
+
+            normalizePhone(contact.phone),
 
         }));
 
-        const phoneNumbers = normalizedContacts.map(
+        const phoneNumbers =
 
-            c => c.normalized,
+            normalizedContacts.map(
 
-        );
+                c => c.normalized,
+
+            );
 
         //////////////////////////////////////////////////////
-        // SEARCH ONLY CONTACT NUMBERS
+        // FIND SWALA USERS
         //////////////////////////////////////////////////////
 
         const users = await pool.query(
 
             `
             SELECT
+
                 id,
+
                 full_name,
+
                 username,
+
                 phone,
+
                 profile_image
+
             FROM users
-            WHERE regexp_replace(phone,'[^0-9]','','g')
-            = ANY($1)
+
+            WHERE
+
+            regexp_replace(
+
+                phone,
+
+                '[^0-9]',
+
+                '',
+
+                'g'
+
+            ) = ANY($1)
             `,
 
             [
@@ -78,7 +149,11 @@ const syncContacts = async (req, res) => {
 
             userMap.set(
 
-                normalizePhone(user.phone),
+                normalizePhone(
+
+                    user.phone,
+
+                ),
 
                 user,
 
@@ -87,7 +162,7 @@ const syncContacts = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // BUILD RESPONSE
+        // SAVE CONTACTS
         //////////////////////////////////////////////////////
 
         const swalaUsers = [];
@@ -96,23 +171,120 @@ const syncContacts = async (req, res) => {
 
         for (const contact of normalizedContacts) {
 
-            if (userMap.has(contact.normalized)) {
+            if (
+
+                userMap.has(
+
+                    contact.normalized,
+
+                )
+
+            ) {
+
+                const matchedUser =
+
+                    userMap.get(
+
+                        contact.normalized,
+
+                    );
+
+                //////////////////////////////////////////////////////
+                // DON'T SAVE YOURSELF
+                //////////////////////////////////////////////////////
+
+                if (
+
+                    Number(matchedUser.id) !==
+
+                    Number(user_id)
+
+                ) {
+
+                    await pool.query(
+
+                        `
+                        INSERT INTO contacts
+                        (
+
+                            user_id,
+
+                            contact_user_id,
+
+                            contact_name,
+
+                            phone
+
+                        )
+
+                        VALUES
+                        (
+
+                            $1,
+
+                            $2,
+
+                            $3,
+
+                            $4
+
+                        )
+
+                        ON CONFLICT
+                        (
+
+                            user_id,
+
+                            contact_user_id
+
+                        )
+
+                        DO UPDATE SET
+
+                        contact_name = EXCLUDED.contact_name,
+
+                        phone = EXCLUDED.phone
+                        `,
+
+                        [
+
+                            user_id,
+
+                            matchedUser.id,
+
+                            contact.name,
+
+                            contact.phone,
+
+                        ],
+
+                    );
+
+                }
 
                 swalaUsers.push({
 
-                    ...userMap.get(contact.normalized),
+                    ...matchedUser,
 
-                    contact_name: contact.name,
+                    contact_name:
+
+                    contact.name,
 
                 });
 
-            } else {
+            }
+
+            else {
 
                 inviteContacts.push({
 
-                    name: contact.name,
+                    name:
 
-                    phone: contact.phone,
+                    contact.name,
+
+                    phone:
+
+                    contact.phone,
 
                 });
 
@@ -127,6 +299,14 @@ const syncContacts = async (req, res) => {
         return res.json({
 
             success: true,
+
+            totalSwalaUsers:
+
+            swalaUsers.length,
+
+            totalInvites:
+
+            inviteContacts.length,
 
             swalaUsers,
 

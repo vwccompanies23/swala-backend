@@ -85,6 +85,14 @@ require('./models/calls/createCallHistoryTable');
 
 const createMediaMessagesTable =
 require("./models/messages/createMediaMessagesTable");
+const createContactsTable =
+require("./models/contacts/createContactsTable");
+const createStatusesTable =
+require("./models/status/createStatusesTable");
+const createStatusViewsTable =
+require("./models/status/createStatusViewsTable");
+const createStatusPrivacyTable =
+require("./models/status/createStatusPrivacyTable");
 
 const channelPostRoutes =
 require('./routes/channels/channelPosts');
@@ -93,6 +101,9 @@ require('./database/migrations/addBusinessCreatorColumns');
 
 const channelFileRoutes =
 require('./routes/channels/channelFiles');
+const {
+    startStatusScheduler,
+} = require("./services/status/statusScheduler");
 
 const profileRoutes =
 require('./routes/profile/profileRoutes');
@@ -114,6 +125,8 @@ require("./routes/contacts/contactRoutes");
 
 const mediaRoutes =
 require("./routes/media/mediaRoutes");
+const statusRoutes =
+require("./routes/status/statusRoutes");
 
 const app = express();
 
@@ -284,6 +297,12 @@ app.use(
   '/api/upload',
   uploadRoutes,
 );
+
+app.use(
+    "/api/status",
+    statusRoutes,
+);
+
 app.use(
     "/api/contacts",
     contactRoutes,
@@ -354,12 +373,18 @@ async function initializeDatabase() {
   await createBroadcastReactionsTable();
 
   await createMediaMessagesTable();
+  await createContactsTable();
+  await createStatusesTable();
+  await createStatusViewsTable();
+  await createStatusPrivacyTable();
 
   console.log("✅ Database initialized successfully.");
 
 }
 
 initializeDatabase();
+
+startStatusScheduler();
 
 const PORT = process.env.PORT || 5000;
 // Create HTTP Server
