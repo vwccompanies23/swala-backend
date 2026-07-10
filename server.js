@@ -404,7 +404,7 @@ const io = new Server(server, {
 
   },
 
-  transports: ["websocket"],
+  transports: ["websocket", "polling"],
 
 });
 
