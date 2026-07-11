@@ -138,46 +138,26 @@ const createStatusController = async (req, res) => {
             `
             INSERT INTO statuses
             (
-
                 user_id,
-
                 media_url,
-
                 caption,
-
                 is_video,
-
                 is_text,
-
                 duration_hours,
-
                 privacy,
-
                 expires_at
-
             )
-
             VALUES
             (
-
                 $1,
-
                 $2,
-
                 $3,
-
                 $4,
-
                 $5,
-
                 $6,
-
                 $7,
-
-               NOW() + ($6 * INTERVAL '1 hour')
-
+                NOW() + make_interval(hours => $6::integer)
             )
-
             RETURNING *;
             `,
 
