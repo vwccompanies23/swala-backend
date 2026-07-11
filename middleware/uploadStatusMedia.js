@@ -49,12 +49,13 @@ const fileFilter = (req, file, cb) => {
     console.log("Uploaded File:", file.originalname);
     console.log("MIME:", file.mimetype);
 
-    const allowed = [
+    const extension = path
+        .extname(file.originalname)
+        .toLowerCase();
 
-        //////////////////////////////////////////////////////
-        // IMAGES
-        //////////////////////////////////////////////////////
+    const allowedMimeTypes = [
 
+        // Images
         "image/jpeg",
         "image/jpg",
         "image/png",
@@ -67,10 +68,10 @@ const fileFilter = (req, file, cb) => {
         "image/avif",
         "image/svg+xml",
 
-        //////////////////////////////////////////////////////
-        // VIDEOS
-        //////////////////////////////////////////////////////
+        // Android sometimes sends this
+        "application/octet-stream",
 
+        // Videos
         "video/mp4",
         "video/quicktime",
         "video/webm",
@@ -83,12 +84,44 @@ const fileFilter = (req, file, cb) => {
 
     ];
 
-    if (allowed.includes(file.mimetype)) {
+    const allowedExtensions = [
+
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".gif",
+        ".bmp",
+        ".tiff",
+        ".heic",
+        ".heif",
+        ".avif",
+        ".svg",
+
+        ".mp4",
+        ".mov",
+        ".mkv",
+        ".3gp",
+        ".3g2",
+        ".mpeg",
+        ".avi",
+        ".webm",
+
+    ];
+
+    if (
+        allowedMimeTypes.includes(file.mimetype) ||
+        allowedExtensions.includes(extension)
+    ) {
+
         return cb(null, true);
+
     }
 
     return cb(
-        new Error(`Unsupported file type: ${file.mimetype}`),
+        new Error(
+            `Unsupported file type: ${file.mimetype}`
+        ),
         false,
     );
 
