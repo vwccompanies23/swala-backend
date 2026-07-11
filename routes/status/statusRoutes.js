@@ -30,15 +30,27 @@ require("../../controllers/status/deleteExpiredStatusesController");
 // UPLOAD STATUS MEDIA
 //////////////////////////////////////////////////////
 
-router.post(
+router.post("/upload", (req, res, next) => {
 
-    "/upload",
+    upload.single("media")(req, res, function (err) {
 
-    upload.single("media"),
+        if (err) {
 
-    uploadStatusMedia,
+            console.error("❌ Multer Error:");
+            console.error(err);
 
-);
+            return res.status(500).json({
+                success: false,
+                error: err.message,
+            });
+
+        }
+
+        next();
+
+    });
+
+}, uploadStatusMedia);
 
 //////////////////////////////////////////////////////
 // CREATE STATUS
