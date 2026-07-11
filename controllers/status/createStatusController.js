@@ -174,7 +174,7 @@ const createStatusController = async (req, res) => {
 
                 $7,
 
-                NOW() + ($6 || ' hours')::INTERVAL
+               NOW() + ($6 * INTERVAL '1 hour')
 
             )
 
