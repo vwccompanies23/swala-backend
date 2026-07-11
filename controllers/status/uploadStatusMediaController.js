@@ -2,6 +2,8 @@ const path = require("path");
 
 const uploadStatusMediaController = async (req, res) => {
 
+    console.log("✅ uploadStatusMediaController reached");
+
     try {
 
         if (!req.file) {
@@ -9,16 +11,13 @@ const uploadStatusMediaController = async (req, res) => {
             return res.status(400).json({
 
                 success: false,
-
                 error: "No media uploaded",
 
             });
 
         }
 
-        const mediaUrl =
-
-            `/uploads/status/${req.file.filename}`;
+        const mediaUrl = `/uploads/status/${req.file.filename}`;
 
         return res.json({
 
@@ -34,9 +33,7 @@ const uploadStatusMediaController = async (req, res) => {
 
         });
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
         console.error(error);
 

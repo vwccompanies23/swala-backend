@@ -150,7 +150,6 @@ app.use('/api/community-rules', communityRuleRoutes);
 app.use('/api/community-members', communityMemberRoutes);
 app.use('/api/community-invitations', communityInvitationRoutes);
 
-app.use(require("./middleware/errorMiddleware"));
 app.use(
 
 require("./middleware/rateLimiter"),
@@ -385,6 +384,8 @@ async function initializeDatabase() {
 initializeDatabase();
 
 startStatusScheduler();
+
+app.use(require("./middleware/errorMiddleware"));
 
 const PORT = process.env.PORT || 5000;
 // Create HTTP Server
