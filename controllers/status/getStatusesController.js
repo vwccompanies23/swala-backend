@@ -153,6 +153,15 @@ const getStatusesController = async (req, res) => {
         // RESPONSE
         //////////////////////////////////////////////////////
 
+        console.log(
+            "Returned statuses:",
+            result.rows.map(s => ({
+                id: s.id,
+                user: s.user_id,
+                caption: s.caption,
+            })),
+        );
+
         return res.json({
 
             success: true,

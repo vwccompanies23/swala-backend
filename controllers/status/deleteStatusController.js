@@ -166,20 +166,16 @@ const deleteStatusController = async (req, res) => {
         // DELETE STATUS
         //////////////////////////////////////////////////////
 
-        await pool.query(
-
+        const deleted = await pool.query(
             `
             DELETE FROM statuses
             WHERE id = $1
+            RETURNING id;
             `,
-
-            [
-
-                statusId,
-
-            ],
-
+            [statusId],
         );
+
+        console.log("Deleted status:", deleted.rows);
 
         //////////////////////////////////////////////////////
         // REALTIME
