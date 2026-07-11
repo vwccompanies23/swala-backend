@@ -44,39 +44,53 @@ const storage = multer.diskStorage({
     },
 
 });
-
 const fileFilter = (req, file, cb) => {
+
+    console.log("Uploaded File:", file.originalname);
+    console.log("MIME:", file.mimetype);
 
     const allowed = [
 
+        //////////////////////////////////////////////////////
+        // IMAGES
+        //////////////////////////////////////////////////////
+
         "image/jpeg",
+        "image/jpg",
         "image/png",
         "image/webp",
-        "image/jpg",
+        "image/gif",
+        "image/bmp",
+        "image/tiff",
+        "image/heic",
+        "image/heif",
+        "image/avif",
+        "image/svg+xml",
+
+        //////////////////////////////////////////////////////
+        // VIDEOS
+        //////////////////////////////////////////////////////
 
         "video/mp4",
         "video/quicktime",
+        "video/webm",
         "video/x-matroska",
+        "video/3gpp",
+        "video/3gpp2",
+        "video/mpeg",
+        "video/x-msvideo",
+        "video/ogg",
 
     ];
 
     if (allowed.includes(file.mimetype)) {
-
-        cb(null, true);
-
+        return cb(null, true);
     }
 
-    else {
-
-        cb(
-
-            new Error("Unsupported file type"),
-
-            false,
-
-        );
-
-    }
+    return cb(
+        new Error(`Unsupported file type: ${file.mimetype}`),
+        false,
+    );
 
 };
 
