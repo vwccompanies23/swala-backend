@@ -104,6 +104,9 @@ require('./routes/channels/channelFiles');
 const {
     startStatusScheduler,
 } = require("./services/status/statusScheduler");
+const {
+    startPostScheduler,
+} = require("./services/posts/postScheduler");
 
 const profileRoutes =
 require('./routes/profile/profileRoutes');
@@ -213,6 +216,9 @@ const createBroadcastReadsTable =
 require('./models/broadcasts/createBroadcastReadsTable');
 const createBroadcastReactionsTable =
 require('./models/broadcasts/createBroadcastReactionsTable');
+
+const createPostViewsTable =
+require("./models/posts/createPostViewsTable");
 
 require('./controllers/businesses/enableBusinessModeController');
 require('./controllers/businesses/disableBusinessModeController');
@@ -376,6 +382,7 @@ async function initializeDatabase() {
   await createStatusesTable();
   await createStatusViewsTable();
   await createStatusPrivacyTable();
+  await createPostViewsTable();
 
   console.log("✅ Database initialized successfully.");
 
@@ -384,6 +391,7 @@ async function initializeDatabase() {
 initializeDatabase();
 
 startStatusScheduler();
+startPostScheduler();
 
 app.use(require("./middleware/errorMiddleware"));
 

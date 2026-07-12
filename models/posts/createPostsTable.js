@@ -6,11 +6,23 @@ const createPostsTable = async () => {
 
     CREATE TABLE IF NOT EXISTS posts (
 
+        //////////////////////////////////////////////////////
+        // PRIMARY KEY
+        //////////////////////////////////////////////////////
+
         id SERIAL PRIMARY KEY,
+
+        //////////////////////////////////////////////////////
+        // OWNER
+        //////////////////////////////////////////////////////
 
         user_id INTEGER NOT NULL
         REFERENCES users(id)
         ON DELETE CASCADE,
+
+        //////////////////////////////////////////////////////
+        // CONTENT
+        //////////////////////////////////////////////////////
 
         content TEXT DEFAULT '',
 
@@ -20,13 +32,28 @@ const createPostsTable = async () => {
 
         is_video BOOLEAN DEFAULT FALSE,
 
-        privacy VARCHAR(30) DEFAULT 'contacts',
+        //////////////////////////////////////////////////////
+        // PRIVACY
+        //////////////////////////////////////////////////////
 
-        duration_hours INTEGER,
+        privacy VARCHAR(30)
+        DEFAULT 'contacts',
+
+        //////////////////////////////////////////////////////
+        // LIFETIME
+        //////////////////////////////////////////////////////
+
+        lifetime VARCHAR(30)
+        DEFAULT 'forever',
 
         expires_at TIMESTAMP,
 
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        //////////////////////////////////////////////////////
+        // DATES
+        //////////////////////////////////////////////////////
+
+        created_at TIMESTAMP
+        DEFAULT CURRENT_TIMESTAMP
 
     );
 
@@ -53,6 +80,11 @@ const createPostsTable = async () => {
 
         await pool.query(`
             ALTER TABLE posts
+            ADD COLUMN IF NOT EXISTS content TEXT DEFAULT '';
+        `);
+
+        await pool.query(`
+            ALTER TABLE posts
             ADD COLUMN IF NOT EXISTS media_url TEXT DEFAULT '';
         `);
 
@@ -68,12 +100,9 @@ const createPostsTable = async () => {
 
         await pool.query(`
             ALTER TABLE posts
-            ADD COLUMN IF NOT EXISTS privacy VARCHAR(30) DEFAULT 'contacts';
+            ADD COLUMN IF NOT EXISTS privacy VARCHAR(30)
+            DEFAULT 'contacts';
         `);
-
-        //////////////////////////////////////////////////////
-        // LIFETIME
-        //////////////////////////////////////////////////////
 
         await pool.query(`
             ALTER TABLE posts
@@ -86,11 +115,22 @@ const createPostsTable = async () => {
             ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP;
         `);
 
+        //////////////////////////////////////////////////////
+        // REMOVE OLD COLUMN
+        //////////////////////////////////////////////////////
+
+        await pool.query(`
+            ALTER TABLE posts
+            DROP COLUMN IF EXISTS duration_hours;
+        `);
+
         console.log("✅ Posts table ready.");
 
-    } catch (error) {
+    }
 
-        console.error("Posts table error:");
+    catch (error) {
+
+        console.error("❌ Posts table error:");
 
         console.error(error);
 

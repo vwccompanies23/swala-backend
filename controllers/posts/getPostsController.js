@@ -1,36 +1,138 @@
-const pool = require('../../config/db');
+const pool = require("../../config/db");
+
+const {
+    getAudience,
+} = require("../../services/audience/audienceService");
 
 const getPosts = async (req, res) => {
-  try {
 
-    const result = await pool.query(
-      `
-      SELECT
-        p.*,
-        u.full_name,
-        u.username,
-        u.profile_image
-      FROM posts p
-      LEFT JOIN users u
-      ON p.user_id = u.id
-      ORDER BY p.created_at DESC
-      `
-    );
+    try {
 
-    res.status(200).json({
-      success: true,
-      posts: result.rows
-    });
+        const { user_id } = req.query;
 
-  } catch (error) {
+        //////////////////////////////////////////////////////
+        // USER REQUIRED
+        //////////////////////////////////////////////////////
 
-    console.error(error);
+        if (!user_id) {
 
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
+            return res.status(400).json({
+
+                success: false,
+
+                error: "User ID is required",
+
+            });
+
+        }
+
+        //////////////////////////////////////////////////////
+        // BUILD AUDIENCE
+        //////////////////////////////////////////////////////
+
+        const audience =
+        await getAudience(user_id);
+
+        const audienceIds =
+        audience.map(user => user.id);
+
+        //////////////////////////////////////////////////////
+        // GET POSTS
+        //////////////////////////////////////////////////////
+
+        const result = await pool.query(
+
+            `
+            SELECT
+
+                p.*,
+
+                u.full_name,
+
+                u.username,
+
+                u.profile_image
+
+            FROM posts p
+
+            JOIN users u
+
+            ON u.id = p.user_id
+
+            WHERE
+
+            (
+
+                p.expires_at IS NULL
+
+                OR
+
+                p.expires_at > NOW()
+
+            )
+
+            AND
+
+          (
+              p.user_id = $2
+
+              OR
+
+              (
+                  p.privacy = 'everyone'
+              )
+
+              OR
+
+              (
+                  p.privacy = 'contacts'
+                  AND
+                  p.user_id = ANY($1)
+              )
+          )
+
+            ORDER BY
+
+                p.created_at DESC
+            `,
+
+           [
+               audienceIds,
+               Number(user_id),
+           ]
+
+        );
+
+        //////////////////////////////////////////////////////
+        // RESPONSE
+        //////////////////////////////////////////////////////
+
+        return res.json({
+
+            success: true,
+
+            total: result.rows.length,
+
+            posts: result.rows,
+
+        });
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+
+            success: false,
+
+            error: error.message,
+
+        });
+
+    }
+
 };
 
 module.exports = getPosts;

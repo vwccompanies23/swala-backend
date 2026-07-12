@@ -198,6 +198,65 @@ class EventDispatcher {
         }
 
     }
+    //////////////////////////////////////////////////////
+        // POST
+        //////////////////////////////////////////////////////
+
+        post(data) {
+
+            //////////////////////////////////////////////////////
+            // EVERYONE
+            //////////////////////////////////////////////////////
+
+            if (
+
+                !data.viewers ||
+
+                data.viewers.length === 0
+
+            ) {
+
+                socketRegistry.io.emit(
+
+                    "post-update",
+
+                    data,
+
+                );
+
+                return;
+
+            }
+
+            //////////////////////////////////////////////////////
+            // CONTACTS / CHATS / CALLS
+            //////////////////////////////////////////////////////
+
+            for (const viewerId of data.viewers) {
+
+                const sockets =
+
+                    socketRegistry.getSockets(
+
+                        viewerId,
+
+                    );
+
+                for (const socket of sockets) {
+
+                    socket.emit(
+
+                        "post-update",
+
+                        data,
+
+                    );
+
+                }
+
+            }
+
+        }
 
     //////////////////////////////////////////////////////
     // CALL

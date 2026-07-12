@@ -1,22 +1,11 @@
 const pool = require("../../config/db");
+const cloudinary = require("../../config/cloudinary");
 
-const cloudinary =
-require("../../config/cloudinary");
-
-const eventDispatcher =
-require("../../realtime/eventDispatcher");
-
-const {
-    getAudience,
-} = require("../../services/audience/audienceService");
-
-const deleteStatusController = async (req, res) => {
-
-console.log("🔥 DELETE STATUS CONTROLLER HIT");
+const deletePostController = async (req, res) => {
 
     try {
 
-        const { statusId } = req.params;
+        const { postId } = req.params;
 
         const { user_id } = req.body;
 
@@ -24,20 +13,20 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!statusId || !user_id) {
+        if (!postId || !user_id) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "statusId and user_id are required",
+                error: "postId and user_id are required",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // FIND STATUS
+        // FIND POST
         //////////////////////////////////////////////////////
 
         const result = await pool.query(
@@ -46,14 +35,17 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
             SELECT
                 id,
                 user_id,
-                media_url,
                 cloudinary_public_id
-            FROM statuses
+            FROM posts
             WHERE id = $1
             LIMIT 1
             `,
 
-            [statusId],
+            [
+
+                postId,
+
+            ],
 
         );
 
@@ -63,52 +55,45 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
 
                 success: false,
 
-                error: "Status not found",
+                error: "Post not found",
 
             });
 
         }
 
-        const status = result.rows[0];
+        const post = result.rows[0];
 
         //////////////////////////////////////////////////////
         // OWNER ONLY
         //////////////////////////////////////////////////////
 
-        if (Number(status.user_id) !== Number(user_id)) {
+        if (Number(post.user_id) !== Number(user_id)) {
 
             return res.status(403).json({
 
                 success: false,
 
-                error: "You are not allowed to delete this status",
+                error: "You are not allowed to delete this post",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // GET AUDIENCE
+        // DELETE CLOUDINARY MEDIA
         //////////////////////////////////////////////////////
 
-        const audience =
-        await getAudience(user_id);
-
-        //////////////////////////////////////////////////////
-        // DELETE FROM CLOUDINARY
-        //////////////////////////////////////////////////////
-
-        if (status.cloudinary_public_id) {
+        if (post.cloudinary_public_id) {
 
             try {
 
                 await cloudinary.uploader.destroy(
 
-                    status.cloudinary_public_id,
+                    post.cloudinary_public_id,
 
                     {
 
-                        resource_type: "image",
+                        resource_type: "auto",
 
                     },
 
@@ -131,54 +116,79 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
         }
 
         //////////////////////////////////////////////////////
+        // DELETE COMMENTS
+        //////////////////////////////////////////////////////
+
+        await pool.query(
+
+            `
+            DELETE FROM comments
+            WHERE post_id = $1
+            `,
+
+            [
+
+                postId,
+
+            ],
+
+        );
+
+        //////////////////////////////////////////////////////
+        // DELETE LIKES
+        //////////////////////////////////////////////////////
+
+        await pool.query(
+
+            `
+            DELETE FROM likes
+            WHERE post_id = $1
+            `,
+
+            [
+
+                postId,
+
+            ],
+
+        );
+
+        //////////////////////////////////////////////////////
+        // DELETE POST
+        //////////////////////////////////////////////////////
+
+        await pool.query(
+
+            `
+            DELETE FROM posts
+            WHERE id = $1
+            `,
+
+            [
+
+                postId,
+
+            ],
+
+        );
+        //////////////////////////////////////////////////////
         // DELETE VIEWS
         //////////////////////////////////////////////////////
 
         await pool.query(
 
             `
-            DELETE FROM status_views
-            WHERE status_id = $1
+            DELETE FROM post_views
+            WHERE post_id = $1
             `,
 
-            [statusId],
+            [
+
+                postId,
+
+            ],
 
         );
-
-        //////////////////////////////////////////////////////
-        // DELETE STATUS
-        //////////////////////////////////////////////////////
-
-        await pool.query(
-
-            `
-            DELETE FROM statuses
-            WHERE id = $1
-            `,
-
-            [statusId],
-
-        );
-
-        //////////////////////////////////////////////////////
-        // REALTIME
-        //////////////////////////////////////////////////////
-
-        eventDispatcher.status({
-
-            type: "status_deleted",
-
-            statusId: Number(statusId),
-
-            viewers: audience.map(
-
-                contact =>
-
-                contact.contact_user_id,
-
-            ),
-
-        });
 
         //////////////////////////////////////////////////////
         // RESPONSE
@@ -188,11 +198,9 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
 
             success: true,
 
-            message:
+            message: "Post deleted successfully",
 
-            "Status deleted successfully",
-
-            statusId: Number(statusId),
+            postId: Number(postId),
 
         });
 
@@ -214,4 +222,4 @@ console.log("🔥 DELETE STATUS CONTROLLER HIT");
 
 };
 
-module.exports = deleteStatusController;
+module.exports = deletePostController;

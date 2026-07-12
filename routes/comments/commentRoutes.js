@@ -1,15 +1,50 @@
-const express = require('express');
+const express = require("express");
 
 const router = express.Router();
 
 const createComment =
-require('../../controllers/comments/createCommentController');
+require("../../controllers/comments/createCommentController");
 
 const getComments =
-require('../../controllers/comments/getCommentsController');
+require("../../controllers/comments/getCommentsController");
 
-router.post('/create', createComment);
+const deleteComment =
+require("../../controllers/comments/deleteCommentController");
 
-router.get('/:post_id', getComments);
+//////////////////////////////////////////////////////
+// CREATE COMMENT
+//////////////////////////////////////////////////////
+
+router.post(
+
+    "/create",
+
+    createComment,
+
+);
+
+//////////////////////////////////////////////////////
+// GET COMMENTS
+//////////////////////////////////////////////////////
+
+router.get(
+
+    "/:post_id",
+
+    getComments,
+
+);
+
+//////////////////////////////////////////////////////
+// DELETE COMMENT
+//////////////////////////////////////////////////////
+
+router.delete(
+
+    "/:commentId",
+
+    deleteComment,
+
+);
 
 module.exports = router;

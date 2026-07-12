@@ -5,7 +5,7 @@ require("../../realtime/eventDispatcher");
 
 const {
     getAudience,
-} = require("../../services/status/statusAudienceService");
+} = require("../../services/audience/audienceService");
 
 const createStatusController = async (req, res) => {
 

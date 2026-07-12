@@ -1,34 +1,28 @@
 const pool = require("../../config/db");
+const cloudinary = require("../../config/cloudinary");
 
-const cloudinary =
-require("../../config/cloudinary");
-
-const eventDispatcher =
-require("../../realtime/eventDispatcher");
-
-const {
-    getAudience,
-} = require("../../services/audience/audienceService");
-
-const deleteExpiredStatusesController = async (req, res) => {
+const deleteExpiredPostsController = async (req, res) => {
 
     try {
 
         //////////////////////////////////////////////////////
-        // FIND EXPIRED STATUSES
+        // FIND EXPIRED POSTS
         //////////////////////////////////////////////////////
 
-        const expiredStatuses = await pool.query(
+        const expiredPosts = await pool.query(
 
             `
             SELECT
                 id,
                 user_id,
-                media_url,
-                cloudinary_public_id,
-                is_video
-            FROM statuses
-            WHERE expires_at <= NOW()
+                cloudinary_public_id
+            FROM posts
+            WHERE
+                lifetime <> 'forever'
+            AND
+                expires_at IS NOT NULL
+            AND
+                expires_at <= NOW()
             `
 
         );
@@ -36,39 +30,26 @@ const deleteExpiredStatusesController = async (req, res) => {
         let deleted = 0;
 
         //////////////////////////////////////////////////////
-        // DELETE EACH STATUS
+        // DELETE EACH POST
         //////////////////////////////////////////////////////
 
-        for (const status of expiredStatuses.rows) {
+        for (const post of expiredPosts.rows) {
 
             //////////////////////////////////////////////////////
-            // GET AUDIENCE
+            // DELETE CLOUDINARY
             //////////////////////////////////////////////////////
 
-            const audience =
-            await getAudience(status.user_id);
-
-            //////////////////////////////////////////////////////
-            // DELETE FROM CLOUDINARY
-            //////////////////////////////////////////////////////
-
-            if (status.cloudinary_public_id) {
+            if (post.cloudinary_public_id) {
 
                 try {
 
                     await cloudinary.uploader.destroy(
 
-                        status.cloudinary_public_id,
+                        post.cloudinary_public_id,
 
                         {
 
-                            resource_type:
-
-                            status.is_video
-
-                                ? "video"
-
-                                : "image",
+                            resource_type: "auto",
 
                         },
 
@@ -79,76 +60,88 @@ const deleteExpiredStatusesController = async (req, res) => {
                 catch (error) {
 
                     console.error(
-
                         "Cloudinary delete error:",
-
                         error,
-
                     );
 
                 }
 
             }
-
             //////////////////////////////////////////////////////
-            // DELETE STATUS VIEWS
+            // DELETE POST VIEWS
             //////////////////////////////////////////////////////
 
             await pool.query(
 
                 `
-                DELETE FROM status_views
-                WHERE status_id = $1
+                DELETE FROM post_views
+                WHERE post_id = $1
                 `,
 
                 [
 
-                    status.id,
+                    post.id,
 
                 ],
 
             );
 
             //////////////////////////////////////////////////////
-            // DELETE STATUS
+            // DELETE COMMENTS
             //////////////////////////////////////////////////////
 
             await pool.query(
 
                 `
-                DELETE FROM statuses
+                DELETE FROM comments
+                WHERE post_id = $1
+                `,
+
+                [
+
+                    post.id,
+
+                ],
+
+            );
+
+            //////////////////////////////////////////////////////
+            // DELETE LIKES
+            //////////////////////////////////////////////////////
+
+            await pool.query(
+
+                `
+                DELETE FROM likes
+                WHERE post_id = $1
+                `,
+
+                [
+
+                    post.id,
+
+                ],
+
+            );
+
+            //////////////////////////////////////////////////////
+            // DELETE POST
+            //////////////////////////////////////////////////////
+
+            await pool.query(
+
+                `
+                DELETE FROM posts
                 WHERE id = $1
                 `,
 
                 [
 
-                    status.id,
+                    post.id,
 
                 ],
 
             );
-
-            //////////////////////////////////////////////////////
-            // REALTIME
-            //////////////////////////////////////////////////////
-
-            eventDispatcher.status({
-
-                type: "status_expired",
-
-                statusId: status.id,
-
-                viewers:
-
-                audience.map(
-
-                    contact =>
-
-                    contact.contact_user_id,
-
-                ),
-
-            });
 
             deleted++;
 
@@ -165,8 +158,7 @@ const deleteExpiredStatusesController = async (req, res) => {
             deleted,
 
             message:
-
-            "Expired statuses deleted successfully",
+            "Expired posts deleted successfully",
 
         });
 
@@ -189,4 +181,4 @@ const deleteExpiredStatusesController = async (req, res) => {
 };
 
 module.exports =
-deleteExpiredStatusesController;
+deleteExpiredPostsController;

@@ -1,106 +1,100 @@
 const pool = require("../../config/db");
 
-const getComments = async (req, res) => {
+const deleteCommentController = async (req, res) => {
 
     try {
 
-        const { post_id } = req.params;
+        const { commentId } = req.params;
+
+        const { user_id } = req.body;
 
         //////////////////////////////////////////////////////
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!post_id) {
+        if (!commentId || !user_id) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "Post ID is required",
+                error: "commentId and user_id are required",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // VERIFY POST
-        //////////////////////////////////////////////////////
-
-        const post = await pool.query(
-
-            `
-            SELECT id
-            FROM posts
-            WHERE id = $1
-            LIMIT 1
-            `,
-
-            [
-
-                post_id,
-
-            ],
-
-        );
-
-        if (post.rows.length === 0) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                error: "Post not found",
-
-            });
-
-        }
-
-        //////////////////////////////////////////////////////
-        // LOAD COMMENTS
+        // FIND COMMENT
         //////////////////////////////////////////////////////
 
         const result = await pool.query(
 
             `
             SELECT
-
-                c.id,
-
-                c.post_id,
-
-                c.user_id,
-
-                c.parent_comment_id,
-
-                c.comment,
-
-                c.created_at,
-
-                u.full_name,
-
-                u.username,
-
-                u.profile_image
-
-            FROM comments c
-
-            JOIN users u
-
-            ON u.id = c.user_id
-
-            WHERE c.post_id = $1
-
-            ORDER BY
-
-                c.parent_comment_id NULLS FIRST,
-
-                c.created_at ASC
-
+                id,
+                user_id
+            FROM comments
+            WHERE id = $1
+            LIMIT 1
             `,
 
             [
 
-                post_id,
+                commentId,
+
+            ],
+
+        );
+
+        if (result.rows.length === 0) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                error: "Comment not found",
+
+            });
+
+        }
+
+        const comment = result.rows[0];
+
+        //////////////////////////////////////////////////////
+        // OWNER ONLY
+        //////////////////////////////////////////////////////
+
+        if (
+
+            Number(comment.user_id) !== Number(user_id)
+
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                error: "You are not allowed to delete this comment",
+
+            });
+
+        }
+
+        //////////////////////////////////////////////////////
+        // DELETE COMMENT
+        //////////////////////////////////////////////////////
+
+        await pool.query(
+
+            `
+            DELETE FROM comments
+            WHERE id = $1
+            `,
+
+            [
+
+                commentId,
 
             ],
 
@@ -114,9 +108,9 @@ const getComments = async (req, res) => {
 
             success: true,
 
-            total: result.rows.length,
+            message: "Comment deleted successfully",
 
-            comments: result.rows,
+            commentId: Number(commentId),
 
         });
 
@@ -138,4 +132,4 @@ const getComments = async (req, res) => {
 
 };
 
-module.exports = getComments;
+module.exports = deleteCommentController;

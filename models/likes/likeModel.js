@@ -1,31 +1,54 @@
-const pool = require('../../config/db');
+const pool = require("../../config/db");
 
 const createLikesTable = async () => {
-  const query = `
+
+    const query = `
+
     CREATE TABLE IF NOT EXISTS likes (
-      id SERIAL PRIMARY KEY,
 
-      post_id INTEGER NOT NULL,
+        id SERIAL PRIMARY KEY,
 
-      user_id INTEGER NOT NULL,
+        post_id INTEGER NOT NULL
+        REFERENCES posts(id)
+        ON DELETE CASCADE,
 
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        user_id INTEGER NOT NULL
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+        created_at TIMESTAMP
+        DEFAULT CURRENT_TIMESTAMP,
+
+        UNIQUE(post_id, user_id)
+
     );
-  `;
 
-  try {
+    `;
 
-    await pool.query(query);
+    try {
 
-    console.log(
-      'Likes table ready'
-    );
+        await pool.query(query);
 
-  } catch (error) {
+        //////////////////////////////////////////////////////
+        // ADD MISSING CONSTRAINTS
+        //////////////////////////////////////////////////////
 
-    console.error(error);
-  }
+        await pool.query(`
+            ALTER TABLE likes
+            ADD COLUMN IF NOT EXISTS created_at
+            TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        `);
+
+        console.log("✅ Likes table ready.");
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
 };
 
-module.exports =
-createLikesTable;
+module.exports = createLikesTable;

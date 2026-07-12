@@ -1,35 +1,41 @@
 const pool = require("../../config/db");
 
-const getComments = async (req, res) => {
+const viewPostController = async (req, res) => {
 
     try {
 
-        const { post_id } = req.params;
+        const {
+
+            post_id,
+
+            viewer_id,
+
+        } = req.body;
 
         //////////////////////////////////////////////////////
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!post_id) {
+        if (!post_id || !viewer_id) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "Post ID is required",
+                error: "post_id and viewer_id are required",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // VERIFY POST
+        // DON'T COUNT OWNER VIEW
         //////////////////////////////////////////////////////
 
-        const post = await pool.query(
+        const owner = await pool.query(
 
             `
-            SELECT id
+            SELECT user_id
             FROM posts
             WHERE id = $1
             LIMIT 1
@@ -43,7 +49,7 @@ const getComments = async (req, res) => {
 
         );
 
-        if (post.rows.length === 0) {
+        if (owner.rows.length === 0) {
 
             return res.status(404).json({
 
@@ -55,52 +61,54 @@ const getComments = async (req, res) => {
 
         }
 
+        if (
+
+            Number(owner.rows[0].user_id) ===
+
+            Number(viewer_id)
+
+        ) {
+
+            return res.json({
+
+                success: true,
+
+                message: "Owner view ignored",
+
+            });
+
+        }
+
         //////////////////////////////////////////////////////
-        // LOAD COMMENTS
+        // SAVE VIEW
         //////////////////////////////////////////////////////
 
-        const result = await pool.query(
+        await pool.query(
 
             `
-            SELECT
-
-                c.id,
-
-                c.post_id,
-
-                c.user_id,
-
-                c.parent_comment_id,
-
-                c.comment,
-
-                c.created_at,
-
-                u.full_name,
-
-                u.username,
-
-                u.profile_image
-
-            FROM comments c
-
-            JOIN users u
-
-            ON u.id = c.user_id
-
-            WHERE c.post_id = $1
-
-            ORDER BY
-
-                c.parent_comment_id NULLS FIRST,
-
-                c.created_at ASC
-
+            INSERT INTO post_views
+            (
+                post_id,
+                viewer_id
+            )
+            VALUES
+            (
+                $1,
+                $2
+            )
+            ON CONFLICT
+            (
+                post_id,
+                viewer_id
+            )
+            DO NOTHING
             `,
 
             [
 
                 post_id,
+
+                viewer_id,
 
             ],
 
@@ -114,9 +122,7 @@ const getComments = async (req, res) => {
 
             success: true,
 
-            total: result.rows.length,
-
-            comments: result.rows,
+            message: "View recorded",
 
         });
 
@@ -138,4 +144,4 @@ const getComments = async (req, res) => {
 
 };
 
-module.exports = getComments;
+module.exports = viewPostController;
