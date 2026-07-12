@@ -4,7 +4,7 @@ const commentModel =
 require("../../models/comments/commentModel");
 
 const eventDispatcher =
-require("../../realtime/EventDispatcher");
+require("../../realtime/eventDispatcher");
 
 const createCommentController = async (req, res) => {
 
