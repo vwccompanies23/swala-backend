@@ -1,5 +1,11 @@
 const pool = require("../../config/db");
 
+const likeModel =
+require("../../models/likes/likeModel");
+
+const eventDispatcher =
+require("../../realtime/EventDispatcher");
+
 const toggleLike = async (req, res) => {
 
     try {
@@ -28,13 +34,15 @@ const toggleLike = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // VERIFY POST EXISTS
+        // VERIFY POST
         //////////////////////////////////////////////////////
 
-        const post = await pool.query(
+        const postResult = await pool.query(
 
             `
-            SELECT id
+            SELECT
+                id,
+                user_id
             FROM posts
             WHERE id = $1
             LIMIT 1
@@ -48,7 +56,7 @@ const toggleLike = async (req, res) => {
 
         );
 
-        if (post.rows.length === 0) {
+        if (postResult.rows.length === 0) {
 
             return res.status(404).json({
 
@@ -60,55 +68,33 @@ const toggleLike = async (req, res) => {
 
         }
 
+        const post = postResult.rows[0];
+
         //////////////////////////////////////////////////////
         // ALREADY LIKED?
         //////////////////////////////////////////////////////
 
-        const existingLike = await pool.query(
+        const existingLike =
 
-            `
-            SELECT id
-            FROM likes
-            WHERE
-                post_id = $1
-            AND
-                user_id = $2
-            LIMIT 1
-            `,
-
-            [
+            await likeModel.findLike(
 
                 post_id,
 
                 user_id,
 
-            ],
-
-        );
+            );
 
         //////////////////////////////////////////////////////
         // UNLIKE
         //////////////////////////////////////////////////////
 
-        if (existingLike.rows.length > 0) {
+        if (existingLike) {
 
-            await pool.query(
+            await likeModel.deleteLike(
 
-                `
-                DELETE FROM likes
-                WHERE
-                    post_id = $1
-                AND
-                    user_id = $2
-                `,
+                post_id,
 
-                [
-
-                    post_id,
-
-                    user_id,
-
-                ],
+                user_id,
 
             );
 
@@ -120,58 +106,77 @@ const toggleLike = async (req, res) => {
 
         else {
 
-            await pool.query(
+            await likeModel.createLike(
 
-                `
-                INSERT INTO likes
-                (
-                    post_id,
-                    user_id
-                )
-                VALUES
-                (
-                    $1,
-                    $2
-                )
-                ON CONFLICT
-                (
-                    post_id,
-                    user_id
-                )
-                DO NOTHING
-                `,
+                post_id,
 
-                [
-
-                    post_id,
-
-                    user_id,
-
-                ],
+                user_id,
 
             );
 
         }
 
         //////////////////////////////////////////////////////
-        // TOTAL LIKES
+        // UPDATED COUNT
         //////////////////////////////////////////////////////
 
-        const count = await pool.query(
+        const likesCount =
 
-            `
-            SELECT COUNT(*) AS total
-            FROM likes
-            WHERE post_id = $1
-            `,
-
-            [
+            await likeModel.countLikes(
 
                 post_id,
 
-            ],
+            );
 
-        );
+        //////////////////////////////////////////////////////
+        // REALTIME
+        //////////////////////////////////////////////////////
+
+        eventDispatcher.postLike({
+
+            postId: Number(post_id),
+
+            userId: Number(user_id),
+
+            liked: !existingLike,
+
+            likes: likesCount,
+
+            viewers: [],
+
+        });
+
+        //////////////////////////////////////////////////////
+        // NOTIFICATION
+        //////////////////////////////////////////////////////
+
+        if (
+
+            Number(post.user_id) !==
+
+            Number(user_id)
+
+        ) {
+
+            eventDispatcher.notification({
+
+                userId: Number(post.user_id),
+
+                event: "post-liked",
+
+                payload: {
+
+                    postId: Number(post_id),
+
+                    likedBy: Number(user_id),
+
+                    likes: likesCount,
+
+                },
+
+            });
+
+        }
 
         //////////////////////////////////////////////////////
         // RESPONSE
@@ -181,13 +186,13 @@ const toggleLike = async (req, res) => {
 
             success: true,
 
-            liked:
+            post_id: Number(post_id),
 
-                existingLike.rows.length === 0,
+            user_id: Number(user_id),
 
-            likes_count:
+            liked: !existingLike,
 
-                Number(count.rows[0].total),
+            likes_count: likesCount,
 
         });
 

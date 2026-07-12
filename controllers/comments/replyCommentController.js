@@ -6,7 +6,7 @@ require("../../models/comments/commentModel");
 const eventDispatcher =
 require("../../realtime/EventDispatcher");
 
-const createCommentController = async (req, res) => {
+const replyCommentController = async (req, res) => {
 
     try {
 
@@ -14,8 +14,8 @@ const createCommentController = async (req, res) => {
 
             post_id,
             user_id,
-            comment,
             parent_comment_id,
+            comment,
 
         } = req.body;
 
@@ -23,113 +23,77 @@ const createCommentController = async (req, res) => {
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!post_id || !user_id) {
+        if (
+
+            !post_id ||
+
+            !user_id ||
+
+            !parent_comment_id ||
+
+            !comment ||
+
+            comment.trim() === ""
+
+        ) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "post_id and user_id are required",
+                error:
+                "post_id, user_id, parent_comment_id and comment are required",
 
             });
 
         }
-
-        if (!comment || comment.trim() === "") {
-
-            return res.status(400).json({
-
-                success: false,
-
-                error: "Comment cannot be empty",
-
-            });
-
-        }
-
-        //////////////////////////////////////////////////////
-        // VERIFY POST
-        //////////////////////////////////////////////////////
-
-        const postResult = await pool.query(
-
-            `
-            SELECT
-                id,
-                user_id
-            FROM posts
-            WHERE id = $1
-            LIMIT 1
-            `,
-
-            [
-
-                post_id,
-
-            ],
-
-        );
-
-        if (postResult.rows.length === 0) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                error: "Post not found",
-
-            });
-
-        }
-
-        const post = postResult.rows[0];
 
         //////////////////////////////////////////////////////
         // VERIFY PARENT COMMENT
         //////////////////////////////////////////////////////
 
-        if (parent_comment_id) {
+        const parentComment =
 
-            const parent = await commentModel.getComment(
+            await commentModel.getComment(
 
                 parent_comment_id,
 
             );
 
-            if (!parent) {
+        if (!parentComment) {
 
-                return res.status(404).json({
+            return res.status(404).json({
 
-                    success: false,
+                success: false,
 
-                    error: "Parent comment not found",
+                error: "Parent comment not found",
 
-                });
-
-            }
+            });
 
         }
 
         //////////////////////////////////////////////////////
-        // CREATE COMMENT
+        // CREATE REPLY
         //////////////////////////////////////////////////////
 
-        const createdComment =
-        await commentModel.createComment({
+        const reply =
 
-            postId: post_id,
+            await commentModel.createComment({
 
-            userId: user_id,
+                postId: post_id,
 
-            parentCommentId:
-            parent_comment_id,
+                userId: user_id,
 
-            comment: comment.trim(),
+                parentCommentId:
+                parent_comment_id,
 
-        });
+                comment:
+                comment.trim(),
+
+            });
 
         //////////////////////////////////////////////////////
-        // LOAD USER INFO
+        // USER INFO
         //////////////////////////////////////////////////////
 
         const userResult = await pool.query(
@@ -166,11 +130,24 @@ const createCommentController = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const commentsCount =
-        await commentModel.countComments(
 
-            post_id,
+            await commentModel.countComments(
 
-        );
+                post_id,
+
+            );
+
+        //////////////////////////////////////////////////////
+        // TOTAL REPLIES
+        //////////////////////////////////////////////////////
+
+        const repliesCount =
+
+            await commentModel.countReplies(
+
+                parent_comment_id,
+
+            );
 
         //////////////////////////////////////////////////////
         // REALTIME
@@ -178,15 +155,21 @@ const createCommentController = async (req, res) => {
 
         eventDispatcher.postComment({
 
+            action: "reply",
+
             postId: Number(post_id),
 
-            commentId:
-            createdComment.id,
+            parentCommentId:
+            Number(parent_comment_id),
 
-            userId: Number(user_id),
+            replyId:
+            reply.id,
 
             comments:
             commentsCount,
+
+            replies:
+            repliesCount,
 
             viewers: [],
 
@@ -198,7 +181,7 @@ const createCommentController = async (req, res) => {
 
         if (
 
-            Number(post.user_id) !==
+            Number(parentComment.user_id) !==
 
             Number(user_id)
 
@@ -208,10 +191,11 @@ const createCommentController = async (req, res) => {
 
                 userId:
 
-                Number(post.user_id),
+                Number(parentComment.user_id),
 
                 event:
-                "post-commented",
+
+                "comment-replied",
 
                 payload: {
 
@@ -219,9 +203,12 @@ const createCommentController = async (req, res) => {
                     Number(post_id),
 
                     commentId:
-                    createdComment.id,
+                    Number(parent_comment_id),
 
-                    commentedBy:
+                    replyId:
+                    reply.id,
+
+                    repliedBy:
                     Number(user_id),
 
                 },
@@ -239,12 +226,14 @@ const createCommentController = async (req, res) => {
             success: true,
 
             comments_count:
-
             commentsCount,
 
-            comment: {
+            replies_count:
+            repliesCount,
 
-                ...createdComment,
+            reply: {
+
+                ...reply,
 
                 full_name:
                 user.full_name,
@@ -278,4 +267,4 @@ const createCommentController = async (req, res) => {
 };
 
 module.exports =
-createCommentController;
+replyCommentController;

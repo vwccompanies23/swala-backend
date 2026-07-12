@@ -4,28 +4,46 @@ const createCommentsTable = async () => {
 
     const query = `
 
-    CREATE TABLE IF NOT EXISTS comments (
+        CREATE TABLE IF NOT EXISTS comments (
 
-        id SERIAL PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
 
-        post_id INTEGER NOT NULL
-        REFERENCES posts(id)
-        ON DELETE CASCADE,
+            post_id INTEGER NOT NULL,
 
-        user_id INTEGER NOT NULL
-        REFERENCES users(id)
-        ON DELETE CASCADE,
+            user_id INTEGER NOT NULL,
 
-        parent_comment_id INTEGER
-        REFERENCES comments(id)
-        ON DELETE CASCADE,
+            parent_comment_id INTEGER,
 
-        comment TEXT NOT NULL,
+            comment TEXT NOT NULL,
 
-        created_at TIMESTAMP
-        DEFAULT CURRENT_TIMESTAMP
+            edited BOOLEAN DEFAULT FALSE,
 
-    );
+            is_deleted BOOLEAN DEFAULT FALSE,
+
+            likes_count INTEGER DEFAULT 0,
+
+            replies_count INTEGER DEFAULT 0,
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            CONSTRAINT fk_comment_post
+            FOREIGN KEY (post_id)
+            REFERENCES posts(id)
+            ON DELETE CASCADE,
+
+            CONSTRAINT fk_comment_user
+            FOREIGN KEY (user_id)
+            REFERENCES users(id)
+            ON DELETE CASCADE,
+
+            CONSTRAINT fk_parent_comment
+            FOREIGN KEY (parent_comment_id)
+            REFERENCES comments(id)
+            ON DELETE CASCADE
+
+        );
 
     `;
 
@@ -33,14 +51,9 @@ const createCommentsTable = async () => {
 
         await pool.query(query);
 
-        await pool.query(`
-            ALTER TABLE comments
-            ADD COLUMN IF NOT EXISTS parent_comment_id INTEGER
-            REFERENCES comments(id)
-            ON DELETE CASCADE;
-        `);
-
-        console.log("✅ Comments table ready.");
+        console.log(
+            "Comments table ready",
+        );
 
     }
 
@@ -52,4 +65,5 @@ const createCommentsTable = async () => {
 
 };
 
-module.exports = createCommentsTable;
+module.exports =
+createCommentsTable;

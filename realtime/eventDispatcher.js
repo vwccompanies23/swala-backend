@@ -198,106 +198,155 @@ class EventDispatcher {
         }
 
     }
+
     //////////////////////////////////////////////////////
-        // POST
+    // PRIVATE POST EMITTER
+    //////////////////////////////////////////////////////
+
+    _emitPostEvent(event, data) {
+
+        //////////////////////////////////////////////////////
+        // EVERYONE
         //////////////////////////////////////////////////////
 
-        post(data) {
+        if (
 
-            //////////////////////////////////////////////////////
-            // EVERYONE
-            //////////////////////////////////////////////////////
+            !data.viewers ||
 
-            if (
+            data.viewers.length === 0
 
-                !data.viewers ||
+        ) {
 
-                data.viewers.length === 0
+            socketRegistry.io.emit(
 
-            ) {
+                event,
 
-                socketRegistry.io.emit(
+                data,
 
-                    "post-update",
+            );
+
+            return;
+
+        }
+
+        //////////////////////////////////////////////////////
+        // SEND TO VIEWERS
+        //////////////////////////////////////////////////////
+
+        for (const viewerId of data.viewers) {
+
+            const sockets =
+
+                socketRegistry.getSockets(
+
+                    viewerId,
+
+                );
+
+            for (const socket of sockets) {
+
+                socket.emit(
+
+                    event,
 
                     data,
 
                 );
 
-                return;
-
             }
-
-            //////////////////////////////////////////////////////
-            // CONTACTS / CHATS / CALLS
-            //////////////////////////////////////////////////////
-
-            for (const viewerId of data.viewers) {
-
-                const sockets =
-
-                    socketRegistry.getSockets(
-
-                        viewerId,
-
-                    );
-
-                for (const socket of sockets) {
-
-                    socket.emit(
-
-                        "post-update",
-
-                        data,
-
-                    );
-
-                }
-
-            }
-
-        }
-
-    //////////////////////////////////////////////////////
-    // CALL
-    //////////////////////////////////////////////////////
-
-    call(data) {
-
-        const sockets =
-            socketRegistry.getSockets(
-                data.receiverId,
-            );
-
-        for (const socket of sockets) {
-
-            socket.emit(
-                "incoming-call",
-                data,
-            );
 
         }
 
     }
+
     //////////////////////////////////////////////////////
-    // GROUP CALL
+    // POST CREATED / UPDATED
     //////////////////////////////////////////////////////
 
-    groupCall(data) {
+    post(data) {
 
-        if (!data.members) {
-            return;
+        this._emitPostEvent(
+
+            "post-update",
+
+            data,
+
+        );
+
+    }
+
+    //////////////////////////////////////////////////////
+    // POST LIKED
+    //////////////////////////////////////////////////////
+
+    postLike(data) {
+
+        this._emitPostEvent(
+
+            "post-liked",
+
+            data,
+
+        );
+
+    }
+    //////////////////////////////////////////////////////
+        // POST COMMENTED
+        //////////////////////////////////////////////////////
+
+        postComment(data) {
+
+            this._emitPostEvent(
+
+                "post-commented",
+
+                data,
+
+            );
+
         }
 
-        for (const memberId of data.members) {
+        //////////////////////////////////////////////////////
+        // POST SHARED
+        //////////////////////////////////////////////////////
 
-            if (String(memberId) === String(data.callerId)) {
-                continue;
-            }
+        postShare(data) {
+
+            this._emitPostEvent(
+
+                "post-shared",
+
+                data,
+
+            );
+
+        }
+
+        //////////////////////////////////////////////////////
+        // POST DELETED
+        //////////////////////////////////////////////////////
+
+        postDelete(data) {
+
+            this._emitPostEvent(
+
+                "post-deleted",
+
+                data,
+
+            );
+
+        }
+
+        //////////////////////////////////////////////////////
+        // CALL
+        //////////////////////////////////////////////////////
+
+        call(data) {
 
             const sockets =
                 socketRegistry.getSockets(
-                    memberId,
+                    data.receiverId,
                 );
 
             for (const socket of sockets) {
@@ -311,26 +360,61 @@ class EventDispatcher {
 
         }
 
+        //////////////////////////////////////////////////////
+        // GROUP CALL
+        //////////////////////////////////////////////////////
+
+        groupCall(data) {
+
+            if (!data.members) {
+                return;
+            }
+
+            for (const memberId of data.members) {
+
+                if (
+                    String(memberId) ===
+                    String(data.callerId)
+                ) {
+                    continue;
+                }
+
+                const sockets =
+                    socketRegistry.getSockets(
+                        memberId,
+                    );
+
+                for (const socket of sockets) {
+
+                    socket.emit(
+                        "incoming-call",
+                        data,
+                    );
+
+                }
+
+            }
+
+        }
+
+        //////////////////////////////////////////////////////
+        // NOTIFICATION
+        //////////////////////////////////////////////////////
+
+        notification(data) {
+
+            notificationService.sendToUser({
+
+                userId: data.userId,
+
+                event: data.event,
+
+                data: data.payload,
+
+            });
+
+        }
+
     }
 
-    //////////////////////////////////////////////////////
-    // NOTIFICATION
-    //////////////////////////////////////////////////////
-
-    notification(data) {
-
-        notificationService.sendToUser({
-
-            userId: data.userId,
-
-            event: data.event,
-
-            data: data.payload,
-
-        });
-
-    }
-
-}
-
-module.exports = new EventDispatcher();
+    module.exports = new EventDispatcher();

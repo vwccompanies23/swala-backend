@@ -1,12 +1,12 @@
 const pool = require("../../config/db");
 
-const commentModel =
-require("../../models/comments/commentModel");
+const shareModel =
+require("../../models/shares/shareModel");
 
 const eventDispatcher =
 require("../../realtime/EventDispatcher");
 
-const createCommentController = async (req, res) => {
+const createShareController = async (req, res) => {
 
     try {
 
@@ -14,8 +14,9 @@ const createCommentController = async (req, res) => {
 
             post_id,
             user_id,
-            comment,
-            parent_comment_id,
+            share_type,
+            destination_type,
+            destination_id,
 
         } = req.body;
 
@@ -30,18 +31,6 @@ const createCommentController = async (req, res) => {
                 success: false,
 
                 error: "post_id and user_id are required",
-
-            });
-
-        }
-
-        if (!comment || comment.trim() === "") {
-
-            return res.status(400).json({
-
-                success: false,
-
-                error: "Comment cannot be empty",
 
             });
 
@@ -82,91 +71,37 @@ const createCommentController = async (req, res) => {
 
         }
 
-        const post = postResult.rows[0];
+        const post =
+        postResult.rows[0];
 
         //////////////////////////////////////////////////////
-        // VERIFY PARENT COMMENT
+        // CREATE SHARE
         //////////////////////////////////////////////////////
 
-        if (parent_comment_id) {
-
-            const parent = await commentModel.getComment(
-
-                parent_comment_id,
-
-            );
-
-            if (!parent) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    error: "Parent comment not found",
-
-                });
-
-            }
-
-        }
-
-        //////////////////////////////////////////////////////
-        // CREATE COMMENT
-        //////////////////////////////////////////////////////
-
-        const createdComment =
-        await commentModel.createComment({
+        const share =
+        await shareModel.createShare({
 
             postId: post_id,
 
             userId: user_id,
 
-            parentCommentId:
-            parent_comment_id,
+            shareType:
+                share_type || "internal",
 
-            comment: comment.trim(),
+            destinationType:
+                destination_type,
+
+            destinationId:
+                destination_id,
 
         });
 
         //////////////////////////////////////////////////////
-        // LOAD USER INFO
+        // TOTAL SHARES
         //////////////////////////////////////////////////////
 
-        const userResult = await pool.query(
-
-            `
-            SELECT
-
-                full_name,
-
-                username,
-
-                profile_image
-
-            FROM users
-
-            WHERE id = $1
-
-            LIMIT 1
-            `,
-
-            [
-
-                user_id,
-
-            ],
-
-        );
-
-        const user =
-        userResult.rows[0];
-
-        //////////////////////////////////////////////////////
-        // TOTAL COMMENTS
-        //////////////////////////////////////////////////////
-
-        const commentsCount =
-        await commentModel.countComments(
+        const sharesCount =
+        await shareModel.countShares(
 
             post_id,
 
@@ -176,17 +111,19 @@ const createCommentController = async (req, res) => {
         // REALTIME
         //////////////////////////////////////////////////////
 
-        eventDispatcher.postComment({
+        eventDispatcher.postShare({
 
-            postId: Number(post_id),
+            postId:
+            Number(post_id),
 
-            commentId:
-            createdComment.id,
+            shareId:
+            share.id,
 
-            userId: Number(user_id),
+            userId:
+            Number(user_id),
 
-            comments:
-            commentsCount,
+            shares:
+            sharesCount,
 
             viewers: [],
 
@@ -207,21 +144,20 @@ const createCommentController = async (req, res) => {
             eventDispatcher.notification({
 
                 userId:
-
                 Number(post.user_id),
 
                 event:
-                "post-commented",
+                "post-shared",
 
                 payload: {
 
                     postId:
                     Number(post_id),
 
-                    commentId:
-                    createdComment.id,
+                    shareId:
+                    share.id,
 
-                    commentedBy:
+                    sharedBy:
                     Number(user_id),
 
                 },
@@ -238,24 +174,10 @@ const createCommentController = async (req, res) => {
 
             success: true,
 
-            comments_count:
+            shares_count:
+            sharesCount,
 
-            commentsCount,
-
-            comment: {
-
-                ...createdComment,
-
-                full_name:
-                user.full_name,
-
-                username:
-                user.username,
-
-                profile_image:
-                user.profile_image,
-
-            },
+            share,
 
         });
 
@@ -278,4 +200,4 @@ const createCommentController = async (req, res) => {
 };
 
 module.exports =
-createCommentController;
+createShareController;

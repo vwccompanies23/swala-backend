@@ -4,25 +4,41 @@ require("../../models/comments/commentModel");
 const eventDispatcher =
 require("../../realtime/EventDispatcher");
 
-const deleteCommentController = async (req, res) => {
+const updateCommentController = async (req, res) => {
 
     try {
 
         const { commentId } = req.params;
 
-        const { user_id } = req.body;
+        const {
+
+            user_id,
+            comment,
+
+        } = req.body;
 
         //////////////////////////////////////////////////////
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!commentId || !user_id) {
+        if (
+
+            !commentId ||
+
+            !user_id ||
+
+            !comment ||
+
+            comment.trim() === ""
+
+        ) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "commentId and user_id are required",
+                error:
+                "commentId, user_id and comment are required",
 
             });
 
@@ -32,7 +48,7 @@ const deleteCommentController = async (req, res) => {
         // FIND COMMENT
         //////////////////////////////////////////////////////
 
-        const comment =
+        const existingComment =
 
             await commentModel.getComment(
 
@@ -40,7 +56,7 @@ const deleteCommentController = async (req, res) => {
 
             );
 
-        if (!comment) {
+        if (!existingComment) {
 
             return res.status(404).json({
 
@@ -58,7 +74,7 @@ const deleteCommentController = async (req, res) => {
 
         if (
 
-            Number(comment.user_id) !==
+            Number(existingComment.user_id) !==
 
             Number(user_id)
 
@@ -69,31 +85,23 @@ const deleteCommentController = async (req, res) => {
                 success: false,
 
                 error:
-                "You are not allowed to delete this comment",
+                "You are not allowed to edit this comment",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // DELETE COMMENT
+        // UPDATE COMMENT
         //////////////////////////////////////////////////////
 
-        await commentModel.deleteComment(
+        const updatedComment =
 
-            commentId,
+            await commentModel.updateComment(
 
-        );
+                commentId,
 
-        //////////////////////////////////////////////////////
-        // TOTAL COMMENTS
-        //////////////////////////////////////////////////////
-
-        const commentsCount =
-
-            await commentModel.countComments(
-
-                comment.post_id,
+                comment.trim(),
 
             );
 
@@ -103,16 +111,16 @@ const deleteCommentController = async (req, res) => {
 
         eventDispatcher.postComment({
 
+            action: "updated",
+
             postId:
-            Number(comment.post_id),
+            Number(existingComment.post_id),
 
             commentId:
             Number(commentId),
 
-            deleted: true,
-
-            comments:
-            commentsCount,
+            comment:
+            updatedComment,
 
             viewers: [],
 
@@ -126,14 +134,8 @@ const deleteCommentController = async (req, res) => {
 
             success: true,
 
-            commentId:
-            Number(commentId),
-
-            comments_count:
-            commentsCount,
-
-            message:
-            "Comment deleted successfully",
+            comment:
+            updatedComment,
 
         });
 
@@ -156,4 +158,4 @@ const deleteCommentController = async (req, res) => {
 };
 
 module.exports =
-deleteCommentController;
+updateCommentController;

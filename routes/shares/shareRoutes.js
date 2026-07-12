@@ -2,48 +2,48 @@ const express = require("express");
 
 const router = express.Router();
 
-const toggleLike =
-require("../../controllers/likes/toggleLikeController");
+const createShareController =
+require("../../controllers/shares/createShareController");
 
-const getPostLikes =
-require("../../controllers/likes/getPostLikesController");
+const getSharesController =
+require("../../controllers/shares/getSharesController");
 
-const getLikedUsers =
-require("../../controllers/likes/getLikedUsersController");
+const deleteShareController =
+require("../../controllers/shares/deleteShareController");
 
 //////////////////////////////////////////////////////
-// TOGGLE LIKE
+// CREATE SHARE
 //////////////////////////////////////////////////////
 
 router.post(
 
-    "/toggle",
+    "/create",
 
-    toggleLike,
-
-);
-
-//////////////////////////////////////////////////////
-// GET POST LIKES
-//////////////////////////////////////////////////////
-
-router.get(
-
-    "/post/:postId",
-
-    getPostLikes,
+    createShareController,
 
 );
 
 //////////////////////////////////////////////////////
-// GET LIKED USERS
+// GET SHARES
 //////////////////////////////////////////////////////
 
 router.get(
 
-    "/users/:postId",
+    "/:post_id",
 
-    getLikedUsers,
+    getSharesController,
+
+);
+
+//////////////////////////////////////////////////////
+// DELETE SHARE
+//////////////////////////////////////////////////////
+
+router.delete(
+
+    "/:shareId",
+
+    deleteShareController,
 
 );
 

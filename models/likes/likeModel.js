@@ -1,54 +1,209 @@
 const pool = require("../../config/db");
 
-const createLikesTable = async () => {
+//////////////////////////////////////////////////////
+// FIND LIKE
+//////////////////////////////////////////////////////
 
-    const query = `
+const findLike = async (
 
-    CREATE TABLE IF NOT EXISTS likes (
+    postId,
+    userId,
 
-        id SERIAL PRIMARY KEY,
+) => {
 
-        post_id INTEGER NOT NULL
-        REFERENCES posts(id)
-        ON DELETE CASCADE,
+    const result = await pool.query(
 
-        user_id INTEGER NOT NULL
-        REFERENCES users(id)
-        ON DELETE CASCADE,
+        `
+        SELECT id
+        FROM likes
+        WHERE
+            post_id = $1
+        AND
+            user_id = $2
+        LIMIT 1
+        `,
 
-        created_at TIMESTAMP
-        DEFAULT CURRENT_TIMESTAMP,
+        [
 
-        UNIQUE(post_id, user_id)
+            postId,
+
+            userId,
+
+        ],
 
     );
 
-    `;
-
-    try {
-
-        await pool.query(query);
-
-        //////////////////////////////////////////////////////
-        // ADD MISSING CONSTRAINTS
-        //////////////////////////////////////////////////////
-
-        await pool.query(`
-            ALTER TABLE likes
-            ADD COLUMN IF NOT EXISTS created_at
-            TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-        `);
-
-        console.log("✅ Likes table ready.");
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-    }
+    return result.rows[0] || null;
 
 };
 
-module.exports = createLikesTable;
+//////////////////////////////////////////////////////
+// CREATE LIKE
+//////////////////////////////////////////////////////
+
+const createLike = async (
+
+    postId,
+    userId,
+
+) => {
+
+    return await pool.query(
+
+        `
+        INSERT INTO likes
+        (
+            post_id,
+            user_id
+        )
+        VALUES
+        (
+            $1,
+            $2
+        )
+        ON CONFLICT
+        (
+            post_id,
+            user_id
+        )
+        DO NOTHING
+        `,
+
+        [
+
+            postId,
+
+            userId,
+
+        ],
+
+    );
+
+};
+
+//////////////////////////////////////////////////////
+// DELETE LIKE
+//////////////////////////////////////////////////////
+
+const deleteLike = async (
+
+    postId,
+    userId,
+
+) => {
+
+    return await pool.query(
+
+        `
+        DELETE FROM likes
+        WHERE
+            post_id = $1
+        AND
+            user_id = $2
+        `,
+
+        [
+
+            postId,
+
+            userId,
+
+        ],
+
+    );
+
+};
+
+//////////////////////////////////////////////////////
+// COUNT POST LIKES
+//////////////////////////////////////////////////////
+
+const countLikes = async (
+
+    postId,
+
+) => {
+
+    const result = await pool.query(
+
+        `
+        SELECT COUNT(*) AS total
+        FROM likes
+        WHERE post_id = $1
+        `,
+
+        [
+
+            postId,
+
+        ],
+
+    );
+
+    return Number(
+
+        result.rows[0].total,
+
+    );
+
+};
+
+//////////////////////////////////////////////////////
+// GET POST LIKES
+//////////////////////////////////////////////////////
+
+const getPostLikes = async (
+
+    postId,
+
+) => {
+
+    const result = await pool.query(
+
+        `
+        SELECT
+            l.id,
+            l.user_id,
+            u.full_name,
+            u.username,
+            u.profile_image,
+            l.created_at
+        FROM likes l
+
+        JOIN users u
+        ON u.id = l.user_id
+
+        WHERE l.post_id = $1
+
+        ORDER BY l.created_at DESC
+        `,
+
+        [
+
+            postId,
+
+        ],
+
+    );
+
+    return result.rows;
+
+};
+
+//////////////////////////////////////////////////////
+// EXPORTS
+//////////////////////////////////////////////////////
+
+module.exports = {
+
+    findLike,
+
+    createLike,
+
+    deleteLike,
+
+    countLikes,
+
+    getPostLikes,
+
+};

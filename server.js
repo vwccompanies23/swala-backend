@@ -14,8 +14,10 @@ const createUsersTable = require('./models/users/userModel');
 const createChatsTable = require('./models/chats/chatModel');
 const createMessagesTable = require('./models/messages/messageModel');
 const createPostsTable = require('./models/posts/postModel');
-const createCommentsTable = require('./models/comments/commentModel');
-const createLikesTable = require('./models/likes/likeModel');
+const createCommentsTable =
+require('./models/comments/createCommentsTable');
+const createLikesTable =
+require('./models/likes/createLikesTable');
 
 const messageRoutes = require('./routes/messages/messageRoutes');
 const postRoutes = require('./routes/posts/postRoutes');
@@ -130,6 +132,8 @@ const mediaRoutes =
 require("./routes/media/mediaRoutes");
 const statusRoutes =
 require("./routes/status/statusRoutes");
+const shareRoutes =
+require("./routes/shares/shareRoutes");
 
 const app = express();
 
@@ -317,6 +321,14 @@ app.use(
     "/api/media",
 
     mediaRoutes,
+
+);
+
+app.use(
+
+    "/api/shares",
+
+    shareRoutes,
 
 );
 

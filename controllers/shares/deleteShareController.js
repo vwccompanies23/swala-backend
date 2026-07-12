@@ -1,52 +1,64 @@
-const commentModel =
-require("../../models/comments/commentModel");
+const shareModel =
+require("../../models/shares/shareModel");
 
 const eventDispatcher =
 require("../../realtime/EventDispatcher");
 
-const deleteCommentController = async (req, res) => {
+const deleteShareController = async (req, res) => {
 
     try {
 
-        const { commentId } = req.params;
+        const { shareId } = req.params;
 
-        const { user_id } = req.body;
+        const {
+
+            user_id,
+
+        } = req.body;
 
         //////////////////////////////////////////////////////
         // REQUIRED
         //////////////////////////////////////////////////////
 
-        if (!commentId || !user_id) {
+        if (
+
+            !shareId ||
+
+            !user_id
+
+        ) {
 
             return res.status(400).json({
 
                 success: false,
 
-                error: "commentId and user_id are required",
+                error:
+                "shareId and user_id are required",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // FIND COMMENT
+        // FIND SHARE
         //////////////////////////////////////////////////////
 
-        const comment =
+        const share =
 
-            await commentModel.getComment(
+            await shareModel.getShare(
 
-                commentId,
+                shareId,
 
             );
 
-        if (!comment) {
+        if (!share) {
 
             return res.status(404).json({
 
                 success: false,
 
-                error: "Comment not found",
+                error:
+                "Share not found",
 
             });
 
@@ -58,7 +70,7 @@ const deleteCommentController = async (req, res) => {
 
         if (
 
-            Number(comment.user_id) !==
+            Number(share.user_id) !==
 
             Number(user_id)
 
@@ -69,31 +81,31 @@ const deleteCommentController = async (req, res) => {
                 success: false,
 
                 error:
-                "You are not allowed to delete this comment",
+                "You are not allowed to delete this share",
 
             });
 
         }
 
         //////////////////////////////////////////////////////
-        // DELETE COMMENT
+        // DELETE SHARE
         //////////////////////////////////////////////////////
 
-        await commentModel.deleteComment(
+        await shareModel.deleteShare(
 
-            commentId,
+            shareId,
 
         );
 
         //////////////////////////////////////////////////////
-        // TOTAL COMMENTS
+        // TOTAL SHARES
         //////////////////////////////////////////////////////
 
-        const commentsCount =
+        const sharesCount =
 
-            await commentModel.countComments(
+            await shareModel.countShares(
 
-                comment.post_id,
+                share.post_id,
 
             );
 
@@ -101,18 +113,18 @@ const deleteCommentController = async (req, res) => {
         // REALTIME
         //////////////////////////////////////////////////////
 
-        eventDispatcher.postComment({
+        eventDispatcher.postShare({
+
+            action: "deleted",
 
             postId:
-            Number(comment.post_id),
+            Number(share.post_id),
 
-            commentId:
-            Number(commentId),
+            shareId:
+            Number(shareId),
 
-            deleted: true,
-
-            comments:
-            commentsCount,
+            shares:
+            sharesCount,
 
             viewers: [],
 
@@ -126,14 +138,14 @@ const deleteCommentController = async (req, res) => {
 
             success: true,
 
-            commentId:
-            Number(commentId),
+            shareId:
+            Number(shareId),
 
-            comments_count:
-            commentsCount,
+            shares_count:
+            sharesCount,
 
             message:
-            "Comment deleted successfully",
+            "Share deleted successfully",
 
         });
 
@@ -147,7 +159,8 @@ const deleteCommentController = async (req, res) => {
 
             success: false,
 
-            error: error.message,
+            error:
+            error.message,
 
         });
 
@@ -156,4 +169,4 @@ const deleteCommentController = async (req, res) => {
 };
 
 module.exports =
-deleteCommentController;
+deleteShareController;

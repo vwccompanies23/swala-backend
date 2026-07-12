@@ -1,9 +1,9 @@
 const pool = require("../../config/db");
 
-const commentModel =
-require("../../models/comments/commentModel");
+const shareModel =
+require("../../models/shares/shareModel");
 
-const getCommentsController = async (req, res) => {
+const getSharesController = async (req, res) => {
 
     try {
 
@@ -19,7 +19,7 @@ const getCommentsController = async (req, res) => {
 
                 success: false,
 
-                error: "Post ID is required",
+                error: "post_id is required",
 
             });
 
@@ -59,16 +59,15 @@ const getCommentsController = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // LOAD COMMENTS
+        // LOAD SHARES
         //////////////////////////////////////////////////////
 
-        const comments =
+        const shares =
+        await shareModel.getPostShares(
 
-            await commentModel.getPostComments(
+            post_id,
 
-                post_id,
-
-            );
+        );
 
         //////////////////////////////////////////////////////
         // RESPONSE
@@ -78,11 +77,13 @@ const getCommentsController = async (req, res) => {
 
             success: true,
 
-            post_id: Number(post_id),
+            post_id:
+            Number(post_id),
 
-            total: comments.length,
+            total:
+            shares.length,
 
-            comments,
+            shares,
 
         });
 
@@ -96,7 +97,8 @@ const getCommentsController = async (req, res) => {
 
             success: false,
 
-            error: error.message,
+            error:
+            error.message,
 
         });
 
@@ -105,4 +107,4 @@ const getCommentsController = async (req, res) => {
 };
 
 module.exports =
-getCommentsController;
+getSharesController;
