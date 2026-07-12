@@ -15,6 +15,7 @@ const createStatusController = async (req, res) => {
 
             user_id,
             media_url,
+            cloudinary_public_id,
             caption,
             is_video,
             is_text,
@@ -140,6 +141,7 @@ const createStatusController = async (req, res) => {
             (
                 user_id,
                 media_url,
+                cloudinary_public_id,
                 caption,
                 is_video,
                 is_text,
@@ -156,7 +158,8 @@ const createStatusController = async (req, res) => {
                 $5,
                 $6,
                 $7,
-                NOW() + make_interval(hours => $6::integer)
+                $8,
+                NOW() + make_interval(hours => $7::integer)
             )
             RETURNING *;
             `,
@@ -166,6 +169,8 @@ const createStatusController = async (req, res) => {
                 user.id,
 
                 media_url || "",
+
+                cloudinary_public_id || "",
 
                 caption || "",
 
@@ -242,6 +247,9 @@ const createStatusController = async (req, res) => {
 
                 media_url:
                 status.media_url,
+
+                cloudinary_public_id:
+                status.cloudinary_public_id,
 
                 caption:
                 status.caption,

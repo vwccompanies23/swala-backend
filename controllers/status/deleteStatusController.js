@@ -1,6 +1,7 @@
 const pool = require("../../config/db");
-const fs = require("fs");
-const path = require("path");
+
+const cloudinary =
+require("../../config/cloudinary");
 
 const eventDispatcher =
 require("../../realtime/eventDispatcher");
@@ -43,17 +44,14 @@ const deleteStatusController = async (req, res) => {
             SELECT
                 id,
                 user_id,
-                media_url
+                media_url,
+                cloudinary_public_id
             FROM statuses
             WHERE id = $1
             LIMIT 1
             `,
 
-            [
-
-                statusId,
-
-            ],
+            [statusId],
 
         );
 
@@ -69,18 +67,13 @@ const deleteStatusController = async (req, res) => {
 
         }
 
-        const status =
-        result.rows[0];
+        const status = result.rows[0];
 
         //////////////////////////////////////////////////////
         // OWNER ONLY
         //////////////////////////////////////////////////////
 
-        if (
-
-            Number(status.user_id) !== Number(user_id)
-
-        ) {
+        if (Number(status.user_id) !== Number(user_id)) {
 
             return res.status(403).json({
 
@@ -100,42 +93,34 @@ const deleteStatusController = async (req, res) => {
         await getAudience(user_id);
 
         //////////////////////////////////////////////////////
-        // DELETE MEDIA
+        // DELETE FROM CLOUDINARY
         //////////////////////////////////////////////////////
 
-        if (status.media_url) {
+        if (status.cloudinary_public_id) {
 
             try {
 
-                const filePath = path.join(
+                await cloudinary.uploader.destroy(
 
-                    __dirname,
+                    status.cloudinary_public_id,
 
-                    "../../uploads/status",
+                    {
 
-                    path.basename(status.media_url),
+                        resource_type: "image",
+
+                    },
 
                 );
 
-                if (
-
-                    fs.existsSync(filePath)
-
-                ) {
-
-                    fs.unlinkSync(filePath);
-
-                }
-
             }
 
-            catch (e) {
+            catch (error) {
 
                 console.error(
 
-                    "Failed deleting status media:",
+                    "Cloudinary delete error:",
 
-                    e,
+                    error,
 
                 );
 
@@ -154,11 +139,7 @@ const deleteStatusController = async (req, res) => {
             WHERE status_id = $1
             `,
 
-            [
-
-                statusId,
-
-            ],
+            [statusId],
 
         );
 
@@ -166,16 +147,16 @@ const deleteStatusController = async (req, res) => {
         // DELETE STATUS
         //////////////////////////////////////////////////////
 
-        const deleted = await pool.query(
+        await pool.query(
+
             `
             DELETE FROM statuses
             WHERE id = $1
-            RETURNING id;
             `,
-            [statusId],
-        );
 
-        console.log("Deleted status:", deleted.rows);
+            [statusId],
+
+        );
 
         //////////////////////////////////////////////////////
         // REALTIME
@@ -185,13 +166,9 @@ const deleteStatusController = async (req, res) => {
 
             type: "status_deleted",
 
-            statusId:
+            statusId: Number(statusId),
 
-            Number(statusId),
-
-            viewers:
-
-            audience.map(
+            viewers: audience.map(
 
                 contact =>
 
@@ -213,9 +190,7 @@ const deleteStatusController = async (req, res) => {
 
             "Status deleted successfully",
 
-            statusId:
-
-            Number(statusId),
+            statusId: Number(statusId),
 
         });
 
@@ -237,5 +212,4 @@ const deleteStatusController = async (req, res) => {
 
 };
 
-module.exports =
-deleteStatusController;
+module.exports = deleteStatusController;

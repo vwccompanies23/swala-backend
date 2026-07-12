@@ -1,6 +1,7 @@
 const pool = require("../../config/db");
-const fs = require("fs");
-const path = require("path");
+
+const cloudinary =
+require("../../config/cloudinary");
 
 const eventDispatcher =
 require("../../realtime/eventDispatcher");
@@ -23,7 +24,9 @@ const deleteExpiredStatusesController = async (req, res) => {
             SELECT
                 id,
                 user_id,
-                media_url
+                media_url,
+                cloudinary_public_id,
+                is_video
             FROM statuses
             WHERE expires_at <= NOW()
             `
@@ -39,49 +42,47 @@ const deleteExpiredStatusesController = async (req, res) => {
         for (const status of expiredStatuses.rows) {
 
             //////////////////////////////////////////////////////
-            // GET STATUS AUDIENCE
+            // GET AUDIENCE
             //////////////////////////////////////////////////////
 
             const audience =
             await getAudience(status.user_id);
 
             //////////////////////////////////////////////////////
-            // DELETE MEDIA
+            // DELETE FROM CLOUDINARY
             //////////////////////////////////////////////////////
 
-            if (status.media_url) {
+            if (status.cloudinary_public_id) {
 
                 try {
 
-                    const filePath = path.join(
+                    await cloudinary.uploader.destroy(
 
-                        __dirname,
+                        status.cloudinary_public_id,
 
-                        "../../uploads/status",
+                        {
 
-                        path.basename(status.media_url)
+                            resource_type:
+
+                            status.is_video
+
+                                ? "video"
+
+                                : "image",
+
+                        },
 
                     );
 
-                    if (
-
-                        fs.existsSync(filePath)
-
-                    ) {
-
-                        fs.unlinkSync(filePath);
-
-                    }
-
                 }
 
-                catch (e) {
+                catch (error) {
 
                     console.error(
 
-                        "Status Media Delete Error:",
+                        "Cloudinary delete error:",
 
-                        e,
+                        error,
 
                     );
 

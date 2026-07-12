@@ -1,4 +1,4 @@
-const path = require("path");
+const cloudinary = require("../../config/cloudinary");
 
 const uploadStatusMediaController = async (req, res) => {
 
@@ -17,15 +17,37 @@ const uploadStatusMediaController = async (req, res) => {
 
         }
 
-        const mediaUrl = `/uploads/status/${req.file.filename}`;
+        //////////////////////////////////////////////////////
+        // UPLOAD TO CLOUDINARY
+        //////////////////////////////////////////////////////
+
+        const result = await cloudinary.uploader.upload(
+
+            req.file.path,
+
+            {
+
+                folder: "status",
+
+                resource_type: "auto",
+
+            },
+
+        );
+
+        //////////////////////////////////////////////////////
+        // RESPONSE
+        //////////////////////////////////////////////////////
 
         return res.json({
 
             success: true,
 
-            media_url: mediaUrl,
+            media_url: result.secure_url,
 
-            file_name: req.file.filename,
+            cloudinary_public_id: result.public_id,
+
+            file_name: req.file.originalname,
 
             file_size: req.file.size,
 
@@ -33,7 +55,9 @@ const uploadStatusMediaController = async (req, res) => {
 
         });
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         console.error(error);
 
