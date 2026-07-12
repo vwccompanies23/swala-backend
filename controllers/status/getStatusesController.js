@@ -51,33 +51,60 @@ const getStatusesController = async (req, res) => {
 
         }
 
-        //////////////////////////////////////////////////////
-        // GET CONTACTS
-        //////////////////////////////////////////////////////
+       //////////////////////////////////////////////////////
+       // GET CONTACTS
+       //////////////////////////////////////////////////////
 
-        const contacts = await pool.query(
+       const contacts = await pool.query(
+       `
+       SELECT contact_user_id
+       FROM contacts
+       WHERE user_id = $1
+       `,
+       [user_id],
+       );
 
-            `
-            SELECT contact_user_id
-            FROM contacts
-            WHERE user_id = $1
-            `,
+       const audience = new Set(
+       contacts.rows.map(
+       row => Number(row.contact_user_id),
+       ),
+       );
 
-            [user_id]
+       //////////////////////////////////////////////////////
+       // GET CHAT USERS
+       //////////////////////////////////////////////////////
 
-        );
+       const chats = await pool.query(
+       `
+       SELECT
+           CASE
+               WHEN user_one_id = $1
+               THEN user_two_id
+               ELSE user_one_id
+           END AS user_id
+       FROM chats
+       WHERE
+           user_one_id = $1
+           OR user_two_id = $1
+       `,
+       [user_id],
+       );
 
-        const contactIds = contacts.rows.map(
+       for (const chat of chats.rows) {
 
-            row => row.contact_user_id
+           audience.add(
+               Number(chat.user_id),
+           );
 
-        );
+       }
 
-        //////////////////////////////////////////////////////
-        // INCLUDE MYSELF
-        //////////////////////////////////////////////////////
+       //////////////////////////////////////////////////////
+       // INCLUDE MYSELF
+       //////////////////////////////////////////////////////
 
-        contactIds.push(Number(user_id));
+       audience.add(Number(user_id));
+
+       const contactIds = [...audience];
 
         //////////////////////////////////////////////////////
         // GET VISIBLE STATUSES
