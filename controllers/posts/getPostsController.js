@@ -31,10 +31,10 @@ const getPosts = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const audience =
-        await getAudience(user_id);
+            await getAudience(user_id);
 
         const audienceIds =
-        audience.map(user => user.id);
+            audience.map(user => user.id);
 
         //////////////////////////////////////////////////////
         // GET POSTS
@@ -43,61 +43,53 @@ const getPosts = async (req, res) => {
         const result = await pool.query(
 
             `
-           SELECT
+            SELECT
 
-               p.*,
+                p.*,
 
-               u.full_name,
+                u.full_name,
 
-               u.username,
+                u.username,
 
-               u.profile_image,
+                u.profile_image,
 
-               //////////////////////////////////////////////////////
-               // TOTAL LIKES
-               //////////////////////////////////////////////////////
+                (
+                    SELECT COUNT(*)
+                    FROM likes l
+                    WHERE l.post_id = p.id
+                )::INT AS likes_count,
 
-               (
-                   SELECT COUNT(*)
-                   FROM likes l
-                   WHERE l.post_id = p.id
-               )::INT AS likes_count,
+                (
+                    SELECT COUNT(*)
+                    FROM comments c
+                    WHERE
+                        c.post_id = p.id
+                    AND
+                        c.is_deleted = FALSE
+                )::INT AS comments_count,
 
-               //////////////////////////////////////////////////////
-               // TOTAL COMMENTS
-               //////////////////////////////////////////////////////
+                (
+                    SELECT COUNT(*)
+                    FROM shares s
+                    WHERE
+                        s.post_id = p.id
+                )::INT AS shares_count,
 
-               (
-                   SELECT COUNT(*)
-                   FROM comments c
-                   WHERE
-                       c.post_id = p.id
-                   AND
-                       c.is_deleted = FALSE
-               )::INT AS comments_count,
+                EXISTS(
 
-               //////////////////////////////////////////////////////
-               // TOTAL SHARES
-               //////////////////////////////////////////////////////
+                    SELECT 1
 
-               (
-                   SELECT COUNT(*)
-                   FROM shares s
-                   WHERE s.post_id = p.id
-               )::INT AS shares_count,
+                    FROM likes l
 
-               //////////////////////////////////////////////////////
-               // DID CURRENT USER LIKE?
-               //////////////////////////////////////////////////////
+                    WHERE
 
-               EXISTS(
-                   SELECT 1
-                   FROM likes l
-                   WHERE
-                       l.post_id = p.id
-                   AND
-                       l.user_id = $2
-               ) AS is_liked
+                        l.post_id = p.id
+
+                    AND
+
+                        l.user_id = $2
+
+                ) AS is_liked
 
             FROM posts p
 
@@ -119,33 +111,40 @@ const getPosts = async (req, res) => {
 
             AND
 
-          (
-              p.user_id = $2
+            (
 
-              OR
+                p.user_id = $2
 
-              (
-                  p.privacy = 'everyone'
-              )
+                OR
 
-              OR
+                p.privacy = 'everyone'
 
-              (
-                  p.privacy = 'contacts'
-                  AND
-                  p.user_id = ANY($1)
-              )
-          )
+                OR
+
+                (
+
+                    p.privacy = 'contacts'
+
+                    AND
+
+                    p.user_id = ANY($1)
+
+                )
+
+            )
 
             ORDER BY
 
                 p.created_at DESC
             `,
 
-           [
-               audienceIds,
-               Number(user_id),
-           ]
+            [
+
+                audienceIds,
+
+                Number(user_id),
+
+            ],
 
         );
 
