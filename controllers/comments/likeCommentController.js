@@ -1,7 +1,7 @@
 const pool = require("../../config/db");
 
 const eventDispatcher =
-require("../../realtime/EventDispatcher");
+require("../../realtime/eventDispatcher");
 
 const likeCommentController = async (req, res) => {
 

@@ -4,7 +4,7 @@ const likeModel =
 require("../../models/likes/likeModel");
 
 const eventDispatcher =
-require("../../realtime/EventDispatcher");
+require("../../realtime/eventDispatcher");
 
 const toggleLike = async (req, res) => {
 

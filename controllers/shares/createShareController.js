@@ -4,7 +4,7 @@ const shareModel =
 require("../../models/shares/shareModel");
 
 const eventDispatcher =
-require("../../realtime/EventDispatcher");
+require("../../realtime/eventDispatcher");
 
 const createShareController = async (req, res) => {
 
