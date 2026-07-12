@@ -43,15 +43,61 @@ const getPosts = async (req, res) => {
         const result = await pool.query(
 
             `
-            SELECT
+           SELECT
 
-                p.*,
+               p.*,
 
-                u.full_name,
+               u.full_name,
 
-                u.username,
+               u.username,
 
-                u.profile_image
+               u.profile_image,
+
+               //////////////////////////////////////////////////////
+               // TOTAL LIKES
+               //////////////////////////////////////////////////////
+
+               (
+                   SELECT COUNT(*)
+                   FROM likes l
+                   WHERE l.post_id = p.id
+               )::INT AS likes_count,
+
+               //////////////////////////////////////////////////////
+               // TOTAL COMMENTS
+               //////////////////////////////////////////////////////
+
+               (
+                   SELECT COUNT(*)
+                   FROM comments c
+                   WHERE
+                       c.post_id = p.id
+                   AND
+                       c.is_deleted = FALSE
+               )::INT AS comments_count,
+
+               //////////////////////////////////////////////////////
+               // TOTAL SHARES
+               //////////////////////////////////////////////////////
+
+               (
+                   SELECT COUNT(*)
+                   FROM shares s
+                   WHERE s.post_id = p.id
+               )::INT AS shares_count,
+
+               //////////////////////////////////////////////////////
+               // DID CURRENT USER LIKE?
+               //////////////////////////////////////////////////////
+
+               EXISTS(
+                   SELECT 1
+                   FROM likes l
+                   WHERE
+                       l.post_id = p.id
+                   AND
+                       l.user_id = $2
+               ) AS is_liked
 
             FROM posts p
 

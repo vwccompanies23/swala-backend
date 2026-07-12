@@ -223,6 +223,7 @@ require('./models/broadcasts/createBroadcastReactionsTable');
 
 const createPostViewsTable =
 require("./models/posts/createPostViewsTable");
+const createSharesTable = require("./models/shares/createSharesTable");
 
 require('./controllers/businesses/enableBusinessModeController');
 require('./controllers/businesses/disableBusinessModeController');
@@ -395,6 +396,7 @@ async function initializeDatabase() {
   await createStatusViewsTable();
   await createStatusPrivacyTable();
   await createPostViewsTable();
+  await createSharesTable();
 
   console.log("✅ Database initialized successfully.");
 

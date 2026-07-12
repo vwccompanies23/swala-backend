@@ -28,9 +28,25 @@ const createSharesTable = async () => {
             CONSTRAINT fk_share_user
             FOREIGN KEY (user_id)
             REFERENCES users(id)
-            ON DELETE CASCADE
+            ON DELETE CASCADE,
+
+            CONSTRAINT unique_post_share
+            UNIQUE
+            (
+                post_id,
+                user_id,
+                share_type,
+                destination_type,
+                destination_id
+            )
 
         );
+
+        CREATE INDEX IF NOT EXISTS idx_shares_post
+        ON shares(post_id);
+
+        CREATE INDEX IF NOT EXISTS idx_shares_user
+        ON shares(user_id);
 
     `;
 
@@ -38,9 +54,7 @@ const createSharesTable = async () => {
 
         await pool.query(query);
 
-        console.log(
-            "Shares table ready",
-        );
+        console.log("✅ Shares table ready");
 
     }
 
@@ -52,5 +66,4 @@ const createSharesTable = async () => {
 
 };
 
-module.exports =
-createSharesTable;
+module.exports = createSharesTable;
