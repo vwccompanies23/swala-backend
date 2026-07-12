@@ -12,6 +12,8 @@ const {
 
 const deleteStatusController = async (req, res) => {
 
+console.log("🔥 DELETE STATUS CONTROLLER HIT");
+
     try {
 
         const { statusId } = req.params;
