@@ -209,24 +209,8 @@ class EventDispatcher {
         // EVERYONE
         //////////////////////////////////////////////////////
 
-        if (
-
-            !data.viewers ||
-
-            data.viewers.length === 0
-
-        ) {
-
-            socketRegistry.io.emit(
-
-                event,
-
-                data,
-
-            );
-
+        if (!data.viewers || data.viewers.length === 0) {
             return;
-
         }
 
         //////////////////////////////////////////////////////

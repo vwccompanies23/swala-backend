@@ -7,6 +7,8 @@ class RealtimeService {
 
     initialize(io) {
 
+      socketRegistry.io = io;
+
         io.on("connection", (socket) => {
 
             console.log(`🟢 Socket Connected: ${socket.id}`);
