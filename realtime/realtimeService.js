@@ -2,6 +2,11 @@ const socketRegistry = require("./socketRegistry");
 const presenceService = require("./presenceService");
 const roomService = require("./roomService");
 const eventDispatcher = require("./eventDispatcher");
+const presenceSubscriptions =
+require("./presenceSubscriptions");
+
+const presenceCache =
+require("./presenceCache");
 
 class RealtimeService {
 
@@ -43,6 +48,8 @@ class RealtimeService {
 
             socket.on("register-chat", (userId) => {
 
+                if (!userId) return;
+
                 socket.userId = String(userId);
 
                 socketRegistry.register({
@@ -52,6 +59,9 @@ class RealtimeService {
                     socket,
 
                 });
+
+                // Mark the user online
+                presenceService.userOnline(userId);
 
                 console.log(`💬 Chat User ${userId} connected`);
 
@@ -434,6 +444,46 @@ class RealtimeService {
                                 );
 
                             }
+
+                        });
+                        //////////////////////////////////////////////////////
+                        // PRESENCE SUBSCRIBE
+                        //////////////////////////////////////////////////////
+
+                        socket.on("presence-subscribe", ({ userId }) => {
+
+                            if (!socket.userId || !userId) return;
+
+                            presenceSubscriptions.subscribe(
+                                userId,
+                                socket.userId,
+                            );
+                            const cached =
+                                presenceCache.get(userId);
+
+                            socket.emit(
+                                "presence-update",
+                                cached ?? {
+                                    userId,
+                                    isOnline: false,
+                                    lastSeen: null,
+                                },
+                            );
+
+                        });
+
+                        //////////////////////////////////////////////////////
+                        // PRESENCE UNSUBSCRIBE
+                        //////////////////////////////////////////////////////
+
+                        socket.on("presence-unsubscribe", ({ userId }) => {
+
+                            if (!socket.userId || !userId) return;
+
+                            presenceSubscriptions.unsubscribe(
+                                userId,
+                                socket.userId,
+                            );
 
                         });
 

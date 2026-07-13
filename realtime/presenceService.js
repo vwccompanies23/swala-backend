@@ -1,83 +1,133 @@
 const pool = require("../config/db");
 const socketRegistry = require("./socketRegistry");
+const presenceCache = require("./presenceCache");
+const presenceSubscriptions = require("./presenceSubscriptions");
 
 class PresenceService {
 
-    //////////////////////////////////////////////////////
-    // USER ONLINE
-    //////////////////////////////////////////////////////
+   //////////////////////////////////////////////////////
+   // USER ONLINE
+   //////////////////////////////////////////////////////
 
-    async userOnline(userId) {
+   async userOnline(userId) {
 
-        try {
+       try {
 
-            await pool.query(
+           await pool.query(
+               `
+               UPDATE users
+               SET
+                   is_online = TRUE
+               WHERE id = $1
+               `,
+               [userId],
+           );
 
-                `
-                UPDATE users
-                SET
-                    is_online = TRUE,
-                    last_seen = NOW()
-                WHERE id = $1
-                `,
+           // Update fast memory cache
+           presenceCache.set(userId, {
 
-                [userId],
+               userId,
+               isOnline: true,
+               lastSeen: null,
 
-            );
+           });
 
-            this.broadcastPresence({
+           // Notify only subscribers
+           const subscribers =
+               presenceSubscriptions.getSubscribers(userId);
 
-                userId,
+           for (const subscriberId of subscribers) {
 
-                isOnline: true,
+               const sockets =
+                   socketRegistry.getSockets(subscriberId);
 
-            });
+               for (const socket of sockets) {
 
-        } catch (error) {
+                   socket.emit(
+                       "presence-update",
+                       {
+                           userId,
+                           isOnline: true,
+                           lastSeen: null,
+                       },
+                   );
 
-            console.error(error);
+               }
 
-        }
+           }
 
-    }
+       } catch (error) {
 
-    //////////////////////////////////////////////////////
-    // USER OFFLINE
-    //////////////////////////////////////////////////////
+           console.error(error);
 
-    async userOffline(userId) {
+       }
 
-        try {
+   }
 
-            await pool.query(
+   //////////////////////////////////////////////////////
+   // USER OFFLINE
+   //////////////////////////////////////////////////////
 
-                `
-                UPDATE users
-                SET
-                    is_online = FALSE,
-                    last_seen = NOW()
-                WHERE id = $1
-                `,
+   async userOffline(userId) {
 
-                [userId],
+       try {
 
-            );
+           const lastSeen = new Date();
 
-            this.broadcastPresence({
+           await pool.query(
+               `
+               UPDATE users
+               SET
+                   is_online = FALSE,
+                   last_seen = $2
+               WHERE id = $1
+               `,
+               [
+                   userId,
+                   lastSeen,
+               ],
+           );
 
-                userId,
+           // Update memory cache
+           presenceCache.set(userId, {
 
-                isOnline: false,
+               userId,
+               isOnline: false,
+               lastSeen,
 
-            });
+           });
 
-        } catch (error) {
+           // Notify only subscribers
+           const subscribers =
+               presenceSubscriptions.getSubscribers(userId);
 
-            console.error(error);
+           for (const subscriberId of subscribers) {
 
-        }
+               const sockets =
+                   socketRegistry.getSockets(subscriberId);
 
-    }
+               for (const socket of sockets) {
+
+                   socket.emit(
+                       "presence-update",
+                       {
+                           userId,
+                           isOnline: false,
+                           lastSeen,
+                       },
+                   );
+
+               }
+
+           }
+
+       } catch (error) {
+
+           console.error(error);
+
+       }
+
+   }
 
     //////////////////////////////////////////////////////
     // USER TYPING
