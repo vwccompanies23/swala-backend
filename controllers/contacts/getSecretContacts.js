@@ -2,7 +2,7 @@ const pool = require("../../config/db");
 
 const getSecretContacts = async (req, res) => {
   try {
-    const userId = req.params.userId;
+    const { userId } = req.params;
 
     const result = await pool.query(
       `
@@ -11,16 +11,13 @@ const getSecretContacts = async (req, res) => {
         u.full_name,
         u.username,
         u.phone,
-        u.bio,
         u.profile_image,
-        u.is_online,
-        c.is_favorite,
-        c.is_muted
+        u.bio,
+        c.contact_name
       FROM contacts c
       INNER JOIN users u
         ON u.id = c.contact_user_id
       WHERE c.user_id = $1
-        AND c.is_blocked = FALSE
       ORDER BY u.full_name ASC
       `,
       [userId],
@@ -32,14 +29,12 @@ const getSecretContacts = async (req, res) => {
     });
 
   } catch (error) {
-
     console.error(error);
 
     res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
 
