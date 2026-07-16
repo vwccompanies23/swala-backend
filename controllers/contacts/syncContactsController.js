@@ -1,11 +1,35 @@
 const pool = require("../../config/db");
 
+//////////////////////////////////////////////////////
+// NORMALIZE PHONE (WORLDWIDE)
+//////////////////////////////////////////////////////
+
 const normalizePhone = (phone) => {
 
-    return (phone || "")
+    if (!phone) {
+        return "";
+    }
 
-        .replace(/\D/g, "");
+    let value = phone.toString().trim();
 
+    // Convert 00 prefix to +
+    if (value.startsWith("00")) {
+        value = "+" + value.substring(2);
+    }
+
+    // Keep only digits and +
+    value = value.replace(/[^\d+]/g, "");
+
+    // Allow only one +
+    if (value.startsWith("+")) {
+        value =
+            "+" +
+            value.substring(1).replace(/\+/g, "");
+    } else {
+        value = value.replace(/\+/g, "");
+    }
+
+    return value;
 };
 
 const syncContacts = async (req, res) => {
@@ -13,11 +37,8 @@ const syncContacts = async (req, res) => {
     try {
 
         const {
-
             user_id,
-
             contacts,
-
         } = req.body;
 
         //////////////////////////////////////////////////////
@@ -29,7 +50,6 @@ const syncContacts = async (req, res) => {
             return res.status(400).json({
 
                 success: false,
-
                 error: "user_id is required",
 
             });
@@ -41,7 +61,6 @@ const syncContacts = async (req, res) => {
             return res.status(400).json({
 
                 success: false,
-
                 error: "contacts array required",
 
             });
@@ -53,18 +72,11 @@ const syncContacts = async (req, res) => {
         //////////////////////////////////////////////////////
 
         await pool.query(
-
             `
             DELETE FROM contacts
             WHERE user_id = $1
             `,
-
-            [
-
-                user_id,
-
-            ],
-
+            [user_id],
         );
 
         //////////////////////////////////////////////////////
@@ -73,26 +85,17 @@ const syncContacts = async (req, res) => {
 
         const normalizedContacts = contacts.map(contact => ({
 
-            name:
+            name: contact.name,
 
-            contact.name,
-
-            phone:
-
-            contact.phone,
-
-            normalized:
-
-            normalizePhone(contact.phone),
+            phone: normalizePhone(
+                contact.phone,
+            ),
 
         }));
 
         const phoneNumbers =
-
             normalizedContacts.map(
-
-                c => c.normalized,
-
+                c => c.phone,
             );
 
         //////////////////////////////////////////////////////
@@ -100,43 +103,17 @@ const syncContacts = async (req, res) => {
         //////////////////////////////////////////////////////
 
         const users = await pool.query(
-
             `
             SELECT
-
                 id,
-
                 full_name,
-
                 username,
-
                 phone,
-
-                profile_image
-
+                profile_image,
+                bio,
+                is_online
             FROM users
-
-            WHERE
-
-            regexp_replace(
-
-                phone,
-
-                '[^0-9]',
-
-                '',
-
-                'g'
-
-            ) = ANY($1)
             `,
-
-            [
-
-                phoneNumbers,
-
-            ],
-
         );
 
         //////////////////////////////////////////////////////
@@ -150,9 +127,7 @@ const syncContacts = async (req, res) => {
             userMap.set(
 
                 normalizePhone(
-
                     user.phone,
-
                 ),
 
                 user,
@@ -171,120 +146,83 @@ const syncContacts = async (req, res) => {
 
         for (const contact of normalizedContacts) {
 
-            if (
+            const matchedUser =
+                userMap.get(contact.phone);
 
-                userMap.has(
-
-                    contact.normalized,
-
-                )
-
-            ) {
-
-                const matchedUser =
-
-                    userMap.get(
-
-                        contact.normalized,
-
-                    );
-
-                //////////////////////////////////////////////////////
-                // DON'T SAVE YOURSELF
-                //////////////////////////////////////////////////////
+            if (matchedUser) {
 
                 if (
-
                     Number(matchedUser.id) !==
-
                     Number(user_id)
-
                 ) {
 
                     await pool.query(
-
                         `
                         INSERT INTO contacts
                         (
-
                             user_id,
-
                             contact_user_id,
-
-                            contact_name,
-
-                            phone
-
+                            contact_name
                         )
-
                         VALUES
                         (
-
                             $1,
-
                             $2,
-
-                            $3,
-
-                            $4
-
+                            $3
                         )
-
                         ON CONFLICT
                         (
-
                             user_id,
-
                             contact_user_id
-
                         )
-
                         DO UPDATE SET
-
-                        contact_name = EXCLUDED.contact_name,
-
-                        phone = EXCLUDED.phone
+                        contact_name = EXCLUDED.contact_name
                         `,
-
                         [
-
                             user_id,
-
                             matchedUser.id,
+                            contact.name,
+                        ],
+                    );
 
+                    swalaUsers.push({
+
+                        id: matchedUser.id,
+
+                        full_name:
+                            matchedUser.full_name,
+
+                        username:
+                            matchedUser.username,
+
+                        phone:
+                            matchedUser.phone,
+
+                        profile_image:
+                            matchedUser.profile_image,
+
+                        bio:
+                            matchedUser.bio,
+
+                        is_online:
+                            matchedUser.is_online,
+
+                        contact_name:
                             contact.name,
 
-                            contact.phone,
-
-                        ],
-
-                    );
+                    });
 
                 }
 
-                swalaUsers.push({
-
-                    ...matchedUser,
-
-                    contact_name:
-
-                    contact.name,
-
-                });
-
-            }
-
-            else {
+            } else {
 
                 inviteContacts.push({
 
                     name:
-
-                    contact.name,
+                        contact.name,
 
                     phone:
-
-                    contact.phone,
+                        contact.phone,
 
                 });
 
@@ -301,12 +239,10 @@ const syncContacts = async (req, res) => {
             success: true,
 
             totalSwalaUsers:
-
-            swalaUsers.length,
+                swalaUsers.length,
 
             totalInvites:
-
-            inviteContacts.length,
+                inviteContacts.length,
 
             swalaUsers,
 
