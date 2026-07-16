@@ -17,7 +17,7 @@ const normalizePhone = (phone) => {
         value = "+" + value.substring(2);
     }
 
-    // Keep only digits and +
+    // Remove spaces, dashes, brackets...
     value = value.replace(/[^\d+]/g, "");
 
     // Allow only one +
@@ -30,6 +30,7 @@ const normalizePhone = (phone) => {
     }
 
     return value;
+
 };
 
 const syncContacts = async (req, res) => {
@@ -40,6 +41,15 @@ const syncContacts = async (req, res) => {
             user_id,
             contacts,
         } = req.body;
+
+        //////////////////////////////////////////////////////
+        // DEBUG
+        //////////////////////////////////////////////////////
+
+        console.log("================================");
+        console.log("SYNC CONTACTS");
+        console.log("User ID:", user_id);
+        console.log("Contacts Received:", contacts?.length || 0);
 
         //////////////////////////////////////////////////////
         // VALIDATION
@@ -85,7 +95,7 @@ const syncContacts = async (req, res) => {
 
         const normalizedContacts = contacts.map(contact => ({
 
-            name: contact.name,
+            name: contact.name || "",
 
             phone: normalizePhone(
                 contact.phone,
@@ -93,13 +103,8 @@ const syncContacts = async (req, res) => {
 
         }));
 
-        const phoneNumbers =
-            normalizedContacts.map(
-                c => c.phone,
-            );
-
         //////////////////////////////////////////////////////
-        // FIND SWALA USERS
+        // LOAD ALL USERS
         //////////////////////////////////////////////////////
 
         const users = await pool.query(
@@ -116,47 +121,77 @@ const syncContacts = async (req, res) => {
             `,
         );
 
-        //////////////////////////////////////////////////////
-        // CREATE LOOKUP
-        //////////////////////////////////////////////////////
-
-        const userMap = new Map();
-
-        for (const user of users.rows) {
-
-            userMap.set(
-
-                normalizePhone(
-                    user.phone,
-                ),
-
-                user,
-
-            );
-
-        }
+        console.log(
+            "Users in database:",
+            users.rows.length,
+        );
 
         //////////////////////////////////////////////////////
         // SAVE CONTACTS
         //////////////////////////////////////////////////////
 
         const swalaUsers = [];
-
         const inviteContacts = [];
 
         for (const contact of normalizedContacts) {
 
-            const matchedUser =
-                userMap.get(contact.phone);
+            const contactDigits =
+                contact.phone.replace(/\D/g, "");
+
+            let matchedUser = null;
+
+            //////////////////////////////////////////////////////
+            // WORLDWIDE MATCH
+            //////////////////////////////////////////////////////
+
+            for (const user of users.rows) {
+
+                const userPhone =
+                    normalizePhone(user.phone);
+
+                const userDigits =
+                    userPhone.replace(/\D/g, "");
+
+                if (
+
+                    userDigits === contactDigits ||
+
+                    userDigits.endsWith(contactDigits) ||
+
+                    contactDigits.endsWith(userDigits)
+
+                ) {
+
+                    matchedUser = user;
+                    break;
+
+                }
+
+            }
+
+            console.log(
+                contact.phone,
+                "=>",
+                matchedUser
+                    ? matchedUser.phone
+                    : "NO MATCH",
+            );
+
+            //////////////////////////////////////////////////////
+            // FOUND SWALA USER
+            //////////////////////////////////////////////////////
 
             if (matchedUser) {
 
                 if (
+
                     Number(matchedUser.id) !==
                     Number(user_id)
+
                 ) {
 
                     await pool.query(
+
                         `
                         INSERT INTO contacts
                         (
@@ -176,13 +211,19 @@ const syncContacts = async (req, res) => {
                             contact_user_id
                         )
                         DO UPDATE SET
-                        contact_name = EXCLUDED.contact_name
+
+                        contact_name =
+                        EXCLUDED.contact_name
                         `,
+
                         [
+
                             user_id,
                             matchedUser.id,
                             contact.name,
+
                         ],
+
                     );
 
                     swalaUsers.push({
@@ -190,39 +231,43 @@ const syncContacts = async (req, res) => {
                         id: matchedUser.id,
 
                         full_name:
-                            matchedUser.full_name,
+                        matchedUser.full_name,
 
                         username:
-                            matchedUser.username,
+                        matchedUser.username,
 
                         phone:
-                            matchedUser.phone,
+                        matchedUser.phone,
 
                         profile_image:
-                            matchedUser.profile_image,
+                        matchedUser.profile_image,
 
                         bio:
-                            matchedUser.bio,
+                        matchedUser.bio,
 
                         is_online:
-                            matchedUser.is_online,
+                        matchedUser.is_online,
 
                         contact_name:
-                            contact.name,
+                        contact.name,
 
                     });
 
                 }
 
-            } else {
+            }
+
+            //////////////////////////////////////////////////////
+            // NOT USING SWALA
+            //////////////////////////////////////////////////////
+
+            else {
 
                 inviteContacts.push({
 
-                    name:
-                        contact.name,
+                    name: contact.name,
 
-                    phone:
-                        contact.phone,
+                    phone: contact.phone,
 
                 });
 
@@ -239,10 +284,10 @@ const syncContacts = async (req, res) => {
             success: true,
 
             totalSwalaUsers:
-                swalaUsers.length,
+            swalaUsers.length,
 
             totalInvites:
-                inviteContacts.length,
+            inviteContacts.length,
 
             swalaUsers,
 
@@ -259,7 +304,6 @@ const syncContacts = async (req, res) => {
         return res.status(500).json({
 
             success: false,
-
             error: error.message,
 
         });
