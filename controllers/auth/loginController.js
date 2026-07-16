@@ -9,36 +9,83 @@ require("../../services/auth/authService");
 const deviceService =
 require("../../services/auth/deviceService");
 
+//////////////////////////////////////////////////////
+// NORMALIZE PHONE
+//////////////////////////////////////////////////////
+
+const normalizePhone = (phone) => {
+
+    if (!phone) return "";
+
+    let value = phone.toString().trim();
+
+    if (value.startsWith("00")) {
+        value = "+" + value.substring(2);
+    }
+
+    value = value.replace(/[^\d+]/g, "");
+
+    if (value.startsWith("+")) {
+
+        value =
+            "+" +
+            value.substring(1).replace(/\+/g, "");
+
+    } else {
+
+        value =
+            value.replace(/\+/g, "");
+
+    }
+
+    return value;
+
+};
+
 const loginUser = async (req, res) => {
 
     try {
 
         const {
-
             phone,
-
             password,
-
         } = req.body;
 
-        const result = await pool.query(
+        const normalizedPhone =
+            normalizePhone(phone);
 
+        //////////////////////////////////////////////////////
+        // LOAD USERS
+        //////////////////////////////////////////////////////
+
+        const result = await pool.query(
             `
             SELECT *
             FROM users
-            WHERE phone = $1
-            LIMIT 1
-            `,
-
-            [
-
-                phone,
-
-            ],
-
+            `
         );
 
-        if (result.rows.length === 0) {
+        //////////////////////////////////////////////////////
+        // FIND MATCH
+        //////////////////////////////////////////////////////
+
+        let user = null;
+
+        for (const row of result.rows) {
+
+            if (
+                normalizePhone(row.phone) ===
+                normalizedPhone
+            ) {
+
+                user = row;
+                break;
+
+            }
+
+        }
+
+        if (!user) {
 
             return res.status(404).json({
 
@@ -50,10 +97,11 @@ const loginUser = async (req, res) => {
 
         }
 
-        const user = result.rows[0];
+        //////////////////////////////////////////////////////
+        // VERIFY PASSWORD
+        //////////////////////////////////////////////////////
 
         const passwordMatch =
-
             await passwordService.verify(
 
                 password,
@@ -74,12 +122,14 @@ const loginUser = async (req, res) => {
 
         }
 
-        req.device =
+        //////////////////////////////////////////////////////
+        // LOGIN
+        //////////////////////////////////////////////////////
 
+        req.device =
             deviceService.getDevice(req);
 
         const login =
-
             await authService.createLogin({
 
                 user,
@@ -89,19 +139,12 @@ const loginUser = async (req, res) => {
             });
 
         await pool.query(
-
             `
             UPDATE users
             SET last_login = NOW()
             WHERE id = $1
             `,
-
-            [
-
-                user.id,
-
-            ],
-
+            [user.id],
         );
 
         return res.json({
@@ -109,11 +152,9 @@ const loginUser = async (req, res) => {
             success: true,
 
             accessToken:
-
                 login.accessToken,
 
             refreshToken:
-
                 login.refreshToken,
 
             user: {
@@ -121,39 +162,30 @@ const loginUser = async (req, res) => {
                 id: user.id,
 
                 full_name:
-
                     user.full_name,
 
                 username:
-
                     user.username,
 
                 email:
-
                     user.email,
 
                 phone:
-
                     user.phone,
 
                 profile_image:
-
                     user.profile_image,
 
                 bio:
-
                     user.bio,
 
                 language:
-
                     user.language,
 
                 country:
-
                     user.country,
 
                 is_verified:
-
                     user.is_verified,
 
             },
