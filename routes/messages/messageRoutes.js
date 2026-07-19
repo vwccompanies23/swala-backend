@@ -2,11 +2,18 @@ const express = require("express");
 
 const router = express.Router();
 
+//////////////////////////////////////////////////////
+// CONTROLLERS
+//////////////////////////////////////////////////////
+
 const createMessage =
 require("../../controllers/messages/createMessageController");
 
 const createMediaMessage =
 require("../../controllers/messages/createMediaMessageController");
+
+const createSecretInvitationMessage =
+require("../../controllers/messages/createSecretInvitationMessage");
 
 const getMessages =
 require("../../controllers/messages/getMessagesController");
@@ -27,6 +34,15 @@ require("../../controllers/messages/deleteMessageController");
 router.post(
   "/send",
   createMessage,
+);
+
+//////////////////////////////////////////////////////
+// SECRET INVITATION
+//////////////////////////////////////////////////////
+
+router.post(
+  "/secret-invitation",
+  createSecretInvitationMessage,
 );
 
 //////////////////////////////////////////////////////

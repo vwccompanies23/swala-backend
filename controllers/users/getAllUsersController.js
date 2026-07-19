@@ -4,17 +4,24 @@ const getAllUsers = async (req, res) => {
 
   try {
 
-    const result = await pool.query(`
+    const currentUserId = req.query.user_id;
+
+    const result = await pool.query(
+      `
       SELECT
         id,
         full_name,
         username,
         phone,
         bio,
-        profile_image
+        profile_image,
+        is_online
       FROM users
+      WHERE id <> $1
       ORDER BY full_name ASC
-    `);
+      `,
+      [currentUserId],
+    );
 
     res.json({
       success: true,
@@ -29,7 +36,9 @@ const getAllUsers = async (req, res) => {
       success: false,
       error: error.message,
     });
+
   }
+
 };
 
 module.exports = getAllUsers;
