@@ -1,5 +1,5 @@
 {
-  "name": "swalaapp_backend",
+  "name": "swala-backend",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {

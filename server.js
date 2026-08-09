@@ -145,7 +145,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/posts', postRoutes);
-app.use('/api/comments', commentRoutes);
 app.use('/api/likes', likeRoutes);
 
 app.use('/api/channel-posts', channelPostRoutes);
@@ -340,101 +339,121 @@ app.get('/', (req, res) => {
   });
 });
 
-async function initializeDatabase() {
-
-  await createUsersTable();
-  await addBusinessCreatorColumns();
-  await createChatsTable();
-  await createMessagesTable();
-
-  await createGroupsTable();
-  await createGroupMembersTable();
-  await createGroupMessagesTable();
-  await createGroupCallsTable();
-  await createGroupFilesTable();
-
-  await createPostsTable();
-  await createCommentsTable();
-  await createLikesTable();
-
-  await createChannelFollowersTable();
-  await createChannelsTable();
-  await createChannelPostsTable();
-  await createChannelCommentsTable();
-  await createChannelLikesTable();
-  await createChannelFilesTable();
-
-  await createCommunitiesTable();
-  await createCommunityMembersTable();
-  await createCommunityPostsTable();
-  await createCommunityCommentsTable();
-  await createCommunityLikesTable();
-  await createCommunityFilesTable();
-  await createCommunityRulesTable();
-  await createCommunityInvitationsTable();
-  await createCommunityJoinRequestsTable();
-
-  await createCallsTable();
-  await createCallSignalsTable();
-  await createCallParticipantsTable();
-  await createCallHistoryTable();
-
-  await createBroadcastsTable();
-  await createBroadcastMembersTable();
-  await createBroadcastMessagesTable();
-  await createBroadcastMediaTable();
-  await createBroadcastFilesTable();
-  await createBroadcastLinksTable();
-  await createBroadcastNotificationSettingsTable();
-  await createBroadcastWallpaperTable();
-  await createBroadcastReadsTable();
-  await createBroadcastReactionsTable();
-
-  await createMediaMessagesTable();
-  await createContactsTable();
-  await createStatusesTable();
-  await createStatusViewsTable();
-  await createStatusPrivacyTable();
-  await createPostViewsTable();
-  await createSharesTable();
-
-  console.log("✅ Database initialized successfully.");
-
+async function runMigrationWithRetry(name, migrationFn, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      if (typeof migrationFn === 'function') {
+        await migrationFn();
+        // Give the remote database socket a safe 50ms breather between statements
+        await new Promise(resolve => setTimeout(resolve, 50));
+        return;
+      }
+    } catch (error) {
+      console.warn(`⚠️ [Attempt ${attempt}/${retries}] Failed migration for ${name}: ${error.message}`);
+      if (attempt === retries) {
+        console.error(`❌ Permanent Migration Failure on: ${name}`);
+      } else {
+        // Exponential back-off delay to let the socket recover
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  }
 }
 
-initializeDatabase();
+async function initializeDatabase() {
+  console.log('🔄 Initializing database tables safely and sequentially...');
 
-startStatusScheduler();
-startPostScheduler();
+  const migrationSteps = [
+    { name: 'Users Table', fn: createUsersTable },
+    { name: 'Business Creator Migration', fn: addBusinessCreatorColumns },
+    { name: 'Chats Table', fn: createChatsTable },
+    { name: 'Messages Table', fn: createMessagesTable },
+    { name: 'Groups Table', fn: createGroupsTable },
+    { name: 'Group Members Table', fn: createGroupMembersTable },
+    { name: 'Group Messages Table', fn: createGroupMessagesTable },
+    { name: 'Group Calls Table', fn: createGroupCallsTable },
+    { name: 'Group Files Table', fn: createGroupFilesTable },
+    { name: 'Posts Table', fn: createPostsTable },
+    { name: 'Comments Table', fn: createCommentsTable },
+    { name: 'Likes Table', fn: createLikesTable },
+    { name: 'Channels Table', fn: createChannelsTable },
+    { name: 'Channel Followers Table', fn: createChannelFollowersTable },
+    { name: 'Channel Posts Table', fn: createChannelPostsTable },
+    { name: 'Channel Comments Table', fn: createChannelCommentsTable },
+    { name: 'Channel Likes Table', fn: createChannelLikesTable },
+    { name: 'Channel Files Table', fn: createChannelFilesTable },
+    { name: 'Communities Table', fn: createCommunitiesTable },
+    { name: 'Community Members Table', fn: createCommunityMembersTable },
+    { name: 'Community Posts Table', fn: createCommunityPostsTable },
+    { name: 'Community Comments Table', fn: createCommunityCommentsTable },
+    { name: 'Community Likes Table', fn: createCommunityLikesTable },
+    { name: 'Community Files Table', fn: createCommunityFilesTable },
+    { name: 'Community Rules Table', fn: createCommunityRulesTable },
+    { name: 'Community Invitations Table', fn: createCommunityInvitationsTable },
+    { name: 'Community Join Requests Table', fn: createCommunityJoinRequestsTable },
+    { name: 'Calls Table', fn: createCallsTable },
+    { name: 'Call Signals Table', fn: createCallSignalsTable },
+    { name: 'Call Participants Table', fn: createCallParticipantsTable },
+    { name: 'Call History Table', fn: createCallHistoryTable },
+    { name: 'Broadcasts Table', fn: createBroadcastsTable },
+    { name: 'Broadcast Members Table', fn: createBroadcastMembersTable },
+    { name: 'Broadcast Messages Table', fn: createBroadcastMessagesTable },
+    { name: 'Broadcast Media Table', fn: createBroadcastMediaTable },
+    { name: 'Broadcast Files Table', fn: createBroadcastFilesTable },
+    { name: 'Broadcast Links Table', fn: createBroadcastLinksTable },
+    { name: 'Broadcast Notification Settings', fn: createBroadcastNotificationSettingsTable },
+    { name: 'Broadcast Wallpaper Table', fn: createBroadcastWallpaperTable },
+    { name: 'Broadcast Reads Table', fn: createBroadcastReadsTable },
+    { name: 'Broadcast Reactions Table', fn: createBroadcastReactionsTable },
+    { name: 'Media Messages Table', fn: createMediaMessagesTable },
+    { name: 'Contacts Table', fn: createContactsTable },
+    { name: 'Statuses Table', fn: createStatusesTable },
+    { name: 'Status Views Table', fn: createStatusViewsTable },
+    { name: 'Status Privacy Table', fn: createStatusPrivacyTable },
+    { name: 'Post Views Table', fn: createPostViewsTable },
+    { name: 'Shares Table', fn: createSharesTable }
+  ];
 
+  for (const step of migrationSteps) {
+    await runMigrationWithRetry(step.name, step.fn);
+  }
+
+  console.log("✅ Database initialized successfully.");
+}
+
+// Error middleware should be registered AFTER all routes
 app.use(require("./middleware/errorMiddleware"));
 
 const PORT = process.env.PORT || 5000;
-// Create HTTP Server
 const server = http.createServer(app);
-// Initialize Socket.IO
-const realtimeService =
-require("./realtime/realtimeService");
 
-// Initialize Socket.IO
+const realtimeService = require("./realtime/realtimeService");
+
 const io = new Server(server, {
-
   cors: {
-
     origin: "*",
-
     methods: ["GET", "POST"],
-
   },
-
   transports: ["websocket", "polling"],
-
 });
 
 realtimeService.initialize(io);
-// Start Server
-server.listen(PORT, () => {
-  console.log(
-    `🚀 Swala Backend running on port ${PORT}`
-  );
+
+// Start server first, then safely initialize database tables sequentially
+console.log("SERVER FILE LOADED");
+
+server.listen(PORT, async () => {
+  console.log(`🚀 Swala Backend running on port ${PORT}`);
+  console.log("STEP 1");
+
+  try {
+    console.log("STEP 2");
+    await initializeDatabase();
+    console.log("STEP 3");
+  } catch (err) {
+    console.error("DATABASE INIT FAILED:", err);
+  }
+
+  startStatusScheduler();
+  startPostScheduler();
 });

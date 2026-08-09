@@ -192,19 +192,18 @@ const registerController = async (req, res) => {
 
     }
 
-    catch (error) {
+   catch (error) {
 
-        console.error(error);
+       console.error("REGISTER ERROR");
+       console.error(error);
 
-        return res.status(500).json({
+       return res.status(500).json({
+           success: false,
+           error: error.message,
+           stack: error.stack,
+       });
 
-            success: false,
-
-            error: error.message,
-
-        });
-
-    }
+   }
 
 };
 

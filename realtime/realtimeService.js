@@ -2,11 +2,8 @@ const socketRegistry = require("./socketRegistry");
 const presenceService = require("./presenceService");
 const roomService = require("./roomService");
 const eventDispatcher = require("./eventDispatcher");
-const presenceSubscriptions =
-require("./presenceSubscriptions");
-
-const presenceCache =
-require("./presenceCache");
+const presenceSubscriptions = require("./presenceSubscriptions");
+const presenceCache = require("./presenceCache");
 
 class RealtimeService {
 
@@ -38,7 +35,7 @@ class RealtimeService {
 
                 presenceService.userOnline(userId);
 
-                console.log(`✅ Registered User ${userId}`);
+                console.log(`✅ Registered User ${userId} with socket ID ${socket.id}`);
 
             });
 
@@ -63,7 +60,7 @@ class RealtimeService {
                 // Mark the user online
                 presenceService.userOnline(userId);
 
-                console.log(`💬 Chat User ${userId} connected`);
+                console.log(`💬 Chat User ${userId} connected with socket ID ${socket.id}`);
 
             });
 
@@ -74,15 +71,11 @@ class RealtimeService {
           socket.on("send-message", (data) => {
 
               console.log("========== SEND MESSAGE ==========");
-
               console.log(data);
 
               eventDispatcher.chat({
-
                   receiverId: data.receiverId,
-
                   ...data.message,
-
               });
 
           });
@@ -250,242 +243,164 @@ class RealtimeService {
             });
 
             //////////////////////////////////////////////////////
-                        // WEBRTC OFFER
-                        //////////////////////////////////////////////////////
+            // WEBRTC OFFER
+            //////////////////////////////////////////////////////
 
-                        socket.on("webrtc-offer", (data) => {
+            socket.on("webrtc-offer", (data) => {
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                            for (const socket of sockets) {
+                for (const socket of sockets) {
+                    socket.emit("webrtc-offer", data);
+                }
 
-                                socket.emit(
-                                    "webrtc-offer",
-                                    data,
-                                );
+            });
 
-                            }
+            //////////////////////////////////////////////////////
+            // WEBRTC ANSWER
+            //////////////////////////////////////////////////////
 
-                        });
+            socket.on("webrtc-answer", (data) => {
 
-                        //////////////////////////////////////////////////////
-                        // WEBRTC ANSWER
-                        //////////////////////////////////////////////////////
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                        socket.on("webrtc-answer", (data) => {
+                for (const socket of sockets) {
+                    socket.emit("webrtc-answer", data);
+                }
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+            });
 
-                            for (const socket of sockets) {
+            //////////////////////////////////////////////////////
+            // ICE CANDIDATE
+            //////////////////////////////////////////////////////
 
-                                socket.emit(
-                                    "webrtc-answer",
-                                    data,
-                                );
+            socket.on("ice-candidate", (data) => {
 
-                            }
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                        });
+                for (const socket of sockets) {
+                    socket.emit("ice-candidate", data);
+                }
 
-                        //////////////////////////////////////////////////////
-                        // ICE CANDIDATE
-                        //////////////////////////////////////////////////////
+            });
 
-                        socket.on("ice-candidate", (data) => {
+            //////////////////////////////////////////////////////
+            // ANSWER CALL
+            //////////////////////////////////////////////////////
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+            socket.on("call-answered", (data) => {
 
-                            for (const socket of sockets) {
+                const sockets = socketRegistry.getSockets(data.callerId);
 
-                                socket.emit(
-                                    "ice-candidate",
-                                    data,
-                                );
+                for (const socket of sockets) {
+                    socket.emit("call-answered", data);
+                }
 
-                            }
+            });
 
-                        });
+            //////////////////////////////////////////////////////
+            // REJECT CALL
+            //////////////////////////////////////////////////////
 
-                        //////////////////////////////////////////////////////
-                        // ANSWER CALL
-                        //////////////////////////////////////////////////////
+            socket.on("call-rejected", (data) => {
 
-                        socket.on("call-answered", (data) => {
+                const sockets = socketRegistry.getSockets(data.callerId);
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.callerId,
-                                );
+                for (const socket of sockets) {
+                    socket.emit("call-rejected", data);
+                }
 
-                            for (const socket of sockets) {
+            });
 
-                                socket.emit(
-                                    "call-answered",
-                                    data,
-                                );
+            //////////////////////////////////////////////////////
+            // END CALL
+            //////////////////////////////////////////////////////
 
-                            }
+            socket.on("call-ended", (data) => {
 
-                        });
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                        //////////////////////////////////////////////////////
-                        // REJECT CALL
-                        //////////////////////////////////////////////////////
+                for (const socket of sockets) {
+                    socket.emit("call-ended", data);
+                }
 
-                        socket.on("call-rejected", (data) => {
+            });
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.callerId,
-                                );
+            //////////////////////////////////////////////////////
+            // TOGGLE CAMERA
+            //////////////////////////////////////////////////////
 
-                            for (const socket of sockets) {
+            socket.on("toggle-camera", (data) => {
 
-                                socket.emit(
-                                    "call-rejected",
-                                    data,
-                                );
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                            }
+                for (const socket of sockets) {
+                    socket.emit("toggle-camera", data);
+                }
 
-                        });
+            });
 
-                        //////////////////////////////////////////////////////
-                        // END CALL
-                        //////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////
+            // TOGGLE MUTE
+            //////////////////////////////////////////////////////
 
-                        socket.on("call-ended", (data) => {
+            socket.on("toggle-mute", (data) => {
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                            for (const socket of sockets) {
+                for (const socket of sockets) {
+                    socket.emit("toggle-mute", data);
+                }
 
-                                socket.emit(
-                                    "call-ended",
-                                    data,
-                                );
+            });
 
-                            }
+            //////////////////////////////////////////////////////
+            // SWITCH CAMERA
+            //////////////////////////////////////////////////////
 
-                        });
+            socket.on("switch-camera", (data) => {
 
-                        //////////////////////////////////////////////////////
-                        // TOGGLE CAMERA
-                        //////////////////////////////////////////////////////
+                const sockets = socketRegistry.getSockets(data.receiverId);
 
-                        socket.on("toggle-camera", (data) => {
+                for (const socket of sockets) {
+                    socket.emit("switch-camera", data);
+                }
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+            });
 
-                            for (const socket of sockets) {
+            //////////////////////////////////////////////////////
+            // PRESENCE SUBSCRIBE
+            //////////////////////////////////////////////////////
 
-                                socket.emit(
-                                    "toggle-camera",
-                                    data,
-                                );
+            socket.on("presence-subscribe", ({ userId }) => {
 
-                            }
+                if (!socket.userId || !userId) return;
 
-                        });
+                presenceSubscriptions.subscribe(userId, socket.userId);
+                const cached = presenceCache.get(userId);
 
-                        //////////////////////////////////////////////////////
-                        // TOGGLE MUTE
-                        //////////////////////////////////////////////////////
+                socket.emit(
+                    "presence-update",
+                    cached ?? {
+                        userId,
+                        isOnline: false,
+                        lastSeen: null,
+                    },
+                );
 
-                        socket.on("toggle-mute", (data) => {
+            });
 
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
+            //////////////////////////////////////////////////////
+            // PRESENCE UNSUBSCRIBE
+            //////////////////////////////////////////////////////
 
-                            for (const socket of sockets) {
+            socket.on("presence-unsubscribe", ({ userId }) => {
 
-                                socket.emit(
-                                    "toggle-mute",
-                                    data,
-                                );
+                if (!socket.userId || !userId) return;
 
-                            }
+                presenceSubscriptions.unsubscribe(userId, socket.userId);
 
-                        });
-
-                        //////////////////////////////////////////////////////
-                        // SWITCH CAMERA
-                        //////////////////////////////////////////////////////
-
-                        socket.on("switch-camera", (data) => {
-
-                            const sockets =
-                                socketRegistry.getSockets(
-                                    data.receiverId,
-                                );
-
-                            for (const socket of sockets) {
-
-                                socket.emit(
-                                    "switch-camera",
-                                    data,
-                                );
-
-                            }
-
-                        });
-                        //////////////////////////////////////////////////////
-                        // PRESENCE SUBSCRIBE
-                        //////////////////////////////////////////////////////
-
-                        socket.on("presence-subscribe", ({ userId }) => {
-
-                            if (!socket.userId || !userId) return;
-
-                            presenceSubscriptions.subscribe(
-                                userId,
-                                socket.userId,
-                            );
-                            const cached =
-                                presenceCache.get(userId);
-
-                            socket.emit(
-                                "presence-update",
-                                cached ?? {
-                                    userId,
-                                    isOnline: false,
-                                    lastSeen: null,
-                                },
-                            );
-
-                        });
-
-                        //////////////////////////////////////////////////////
-                        // PRESENCE UNSUBSCRIBE
-                        //////////////////////////////////////////////////////
-
-                        socket.on("presence-unsubscribe", ({ userId }) => {
-
-                            if (!socket.userId || !userId) return;
-
-                            presenceSubscriptions.unsubscribe(
-                                userId,
-                                socket.userId,
-                            );
-
-                        });
+            });
 
             //////////////////////////////////////////////////////
             // JOIN ROOM
@@ -517,26 +432,10 @@ class RealtimeService {
 
                 if (socket.userId) {
 
-                    socketRegistry.unregister(
+                    socketRegistry.unregister(socket.userId, socket.id);
 
-                        socket.userId,
-
-                        socket.id,
-
-                    );
-
-                    if (
-
-                        !socketRegistry.has(socket.userId)
-
-                    ) {
-
-                        presenceService.userOffline(
-
-                            socket.userId,
-
-                        );
-
+                    if (!socketRegistry.has(socket.userId)) {
+                        presenceService.userOffline(socket.userId);
                     }
 
                 }

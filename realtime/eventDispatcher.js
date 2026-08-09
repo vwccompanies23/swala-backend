@@ -4,25 +4,24 @@ const notificationService = require("./notificationService");
 class EventDispatcher {
 
     //////////////////////////////////////////////////////
-    // CHAT
+    // CHAT (Fixed with diagnostics)
     //////////////////////////////////////////////////////
 
     chat(data) {
+        console.log(`🔍 Dispatching chat message to receiverId: ${data.receiverId}`);
 
-        const sockets =
-            socketRegistry.getSockets(
-                data.receiverId,
-            );
+        const sockets = socketRegistry.getSockets(data.receiverId);
 
-        for (const socket of sockets) {
-
-            socket.emit(
-                "receive-message",
-                data,
-            );
-
+        if (!sockets || sockets.length === 0) {
+            console.log(`⚠️ WARNING: No active socket found for receiverId: ${data.receiverId}. User might not be registered properly via socket.`);
+            return;
         }
 
+        console.log(`📨 Found ${sockets.length} active socket(s) for receiverId: ${data.receiverId}. Emitting 'receive-message'.`);
+
+        for (const socket of sockets) {
+            socket.emit("receive-message", data);
+        }
     }
 
     //////////////////////////////////////////////////////
@@ -31,20 +30,12 @@ class EventDispatcher {
 
     deleteMessage(data) {
 
-        const sockets =
-            socketRegistry.getSockets(
-                data.receiverId,
-            );
+        const sockets = socketRegistry.getSockets(data.receiverId);
 
         for (const socket of sockets) {
-
-            socket.emit(
-                "message-deleted",
-                {
-                    messageId: data.messageId,
-                },
-            );
-
+            socket.emit("message-deleted", {
+                messageId: data.messageId,
+            });
         }
 
     }
@@ -55,26 +46,13 @@ class EventDispatcher {
 
     group(data) {
 
-        if (!data.members) {
-            return;
-        }
+        if (!data.members) return;
 
         for (const memberId of data.members) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    memberId,
-                );
-
+            const sockets = socketRegistry.getSockets(memberId);
             for (const socket of sockets) {
-
-                socket.emit(
-                    "group-message",
-                    data,
-                );
-
+                socket.emit("group-message", data);
             }
-
         }
 
     }
@@ -85,26 +63,13 @@ class EventDispatcher {
 
     broadcast(data) {
 
-        if (!data.members) {
-            return;
-        }
+        if (!data.members) return;
 
         for (const memberId of data.members) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    memberId,
-                );
-
+            const sockets = socketRegistry.getSockets(memberId);
             for (const socket of sockets) {
-
-                socket.emit(
-                    "broadcast-message",
-                    data,
-                );
-
+                socket.emit("broadcast-message", data);
             }
-
         }
 
     }
@@ -115,26 +80,13 @@ class EventDispatcher {
 
     community(data) {
 
-        if (!data.members) {
-            return;
-        }
+        if (!data.members) return;
 
         for (const memberId of data.members) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    memberId,
-                );
-
+            const sockets = socketRegistry.getSockets(memberId);
             for (const socket of sockets) {
-
-                socket.emit(
-                    "community-update",
-                    data,
-                );
-
+                socket.emit("community-update", data);
             }
-
         }
 
     }
@@ -145,26 +97,13 @@ class EventDispatcher {
 
     channel(data) {
 
-        if (!data.members) {
-            return;
-        }
+        if (!data.members) return;
 
         for (const memberId of data.members) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    memberId,
-                );
-
+            const sockets = socketRegistry.getSockets(memberId);
             for (const socket of sockets) {
-
-                socket.emit(
-                    "channel-update",
-                    data,
-                );
-
+                socket.emit("channel-update", data);
             }
-
         }
 
     }
@@ -175,26 +114,13 @@ class EventDispatcher {
 
     status(data) {
 
-        if (!data.viewers) {
-            return;
-        }
+        if (!data.viewers) return;
 
         for (const viewerId of data.viewers) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    viewerId,
-                );
-
+            const sockets = socketRegistry.getSockets(viewerId);
             for (const socket of sockets) {
-
-                socket.emit(
-                    "status-update",
-                    data,
-                );
-
+                socket.emit("status-update", data);
             }
-
         }
 
     }
@@ -205,200 +131,84 @@ class EventDispatcher {
 
     _emitPostEvent(event, data) {
 
-        //////////////////////////////////////////////////////
-        // EVERYONE
-        //////////////////////////////////////////////////////
-
-        if (!data.viewers || data.viewers.length === 0) {
-            return;
-        }
-
-        //////////////////////////////////////////////////////
-        // SEND TO VIEWERS
-        //////////////////////////////////////////////////////
+        if (!data.viewers || data.viewers.length === 0) return;
 
         for (const viewerId of data.viewers) {
-
-            const sockets =
-
-                socketRegistry.getSockets(
-
-                    viewerId,
-
-                );
-
+            const sockets = socketRegistry.getSockets(viewerId);
             for (const socket of sockets) {
-
-                socket.emit(
-
-                    event,
-
-                    data,
-
-                );
-
+                socket.emit(event, data);
             }
-
         }
 
     }
-
-    //////////////////////////////////////////////////////
-    // POST CREATED / UPDATED
-    //////////////////////////////////////////////////////
 
     post(data) {
-
-        this._emitPostEvent(
-
-            "post-update",
-
-            data,
-
-        );
-
+        this._emitPostEvent("post-update", data);
     }
-
-    //////////////////////////////////////////////////////
-    // POST LIKED
-    //////////////////////////////////////////////////////
 
     postLike(data) {
-
-        this._emitPostEvent(
-
-            "post-liked",
-
-            data,
-
-        );
-
+        this._emitPostEvent("post-liked", data);
     }
+
+    postComment(data) {
+        this._emitPostEvent("post-commented", data);
+    }
+
+    postShare(data) {
+        this._emitPostEvent("post-shared", data);
+    }
+
+    postDelete(data) {
+        this._emitPostEvent("post-deleted", data);
+    }
+
     //////////////////////////////////////////////////////
-        // POST COMMENTED
-        //////////////////////////////////////////////////////
+    // CALL
+    //////////////////////////////////////////////////////
 
-        postComment(data) {
+    call(data) {
 
-            this._emitPostEvent(
+        const sockets = socketRegistry.getSockets(data.receiverId);
 
-                "post-commented",
-
-                data,
-
-            );
-
-        }
-
-        //////////////////////////////////////////////////////
-        // POST SHARED
-        //////////////////////////////////////////////////////
-
-        postShare(data) {
-
-            this._emitPostEvent(
-
-                "post-shared",
-
-                data,
-
-            );
-
-        }
-
-        //////////////////////////////////////////////////////
-        // POST DELETED
-        //////////////////////////////////////////////////////
-
-        postDelete(data) {
-
-            this._emitPostEvent(
-
-                "post-deleted",
-
-                data,
-
-            );
-
-        }
-
-        //////////////////////////////////////////////////////
-        // CALL
-        //////////////////////////////////////////////////////
-
-        call(data) {
-
-            const sockets =
-                socketRegistry.getSockets(
-                    data.receiverId,
-                );
-
-            for (const socket of sockets) {
-
-                socket.emit(
-                    "incoming-call",
-                    data,
-                );
-
-            }
-
-        }
-
-        //////////////////////////////////////////////////////
-        // GROUP CALL
-        //////////////////////////////////////////////////////
-
-        groupCall(data) {
-
-            if (!data.members) {
-                return;
-            }
-
-            for (const memberId of data.members) {
-
-                if (
-                    String(memberId) ===
-                    String(data.callerId)
-                ) {
-                    continue;
-                }
-
-                const sockets =
-                    socketRegistry.getSockets(
-                        memberId,
-                    );
-
-                for (const socket of sockets) {
-
-                    socket.emit(
-                        "incoming-call",
-                        data,
-                    );
-
-                }
-
-            }
-
-        }
-
-        //////////////////////////////////////////////////////
-        // NOTIFICATION
-        //////////////////////////////////////////////////////
-
-        notification(data) {
-
-            notificationService.sendToUser({
-
-                userId: data.userId,
-
-                event: data.event,
-
-                data: data.payload,
-
-            });
-
+        for (const socket of sockets) {
+            socket.emit("incoming-call", data);
         }
 
     }
 
-    module.exports = new EventDispatcher();
+    //////////////////////////////////////////////////////
+    // GROUP CALL
+    //////////////////////////////////////////////////////
+
+    groupCall(data) {
+
+        if (!data.members) return;
+
+        for (const memberId of data.members) {
+            if (String(memberId) === String(data.callerId)) continue;
+
+            const sockets = socketRegistry.getSockets(memberId);
+            for (const socket of sockets) {
+                socket.emit("incoming-call", data);
+            }
+        }
+
+    }
+
+    //////////////////////////////////////////////////////
+    // NOTIFICATION
+    //////////////////////////////////////////////////////
+
+    notification(data) {
+
+        notificationService.sendToUser({
+            userId: data.userId,
+            event: data.event,
+            data: data.payload,
+        });
+
+    }
+
+}
+
+module.exports = new EventDispatcher();
