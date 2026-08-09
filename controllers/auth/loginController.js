@@ -51,8 +51,11 @@ const loginUser = async (req, res) => {
             password,
         } = req.body;
 
-        const normalizedPhone =
-            normalizePhone(phone);
+        console.log("PHONE FROM APP:", phone);
+
+        const normalizedPhone = normalizePhone(phone);
+
+        console.log("NORMALIZED PHONE:", normalizedPhone);
 
         //////////////////////////////////////////////////////
         // LOAD USERS
@@ -73,10 +76,18 @@ const loginUser = async (req, res) => {
 
         for (const row of result.rows) {
 
+            console.log(
+                "DB PHONE:",
+                row.phone,
+                "NORMALIZED:",
+                normalizePhone(row.phone),
+            );
+
             if (
-                normalizePhone(row.phone) ===
-                normalizedPhone
+                normalizePhone(row.phone) === normalizedPhone
             ) {
+
+                console.log("MATCH FOUND:", row.id);
 
                 user = row;
                 break;
@@ -138,14 +149,7 @@ const loginUser = async (req, res) => {
 
             });
 
-        await pool.query(
-            `
-            UPDATE users
-            SET last_login = NOW()
-            WHERE id = $1
-            `,
-            [user.id],
-        );
+
 
         return res.json({
 
