@@ -51,11 +51,17 @@ const loginUser = async (req, res) => {
             password,
         } = req.body;
 
+        console.log("================================");
+        console.log("LOGIN REQUEST");
         console.log("PHONE FROM APP:", phone);
 
-        const normalizedPhone = normalizePhone(phone);
+        const normalizedPhone =
+            normalizePhone(phone);
 
-        console.log("NORMALIZED PHONE:", normalizedPhone);
+        console.log(
+            "NORMALIZED PHONE:",
+            normalizedPhone,
+        );
 
         //////////////////////////////////////////////////////
         // LOAD USERS
@@ -66,6 +72,11 @@ const loginUser = async (req, res) => {
             SELECT *
             FROM users
             `
+        );
+
+        console.log(
+            "TOTAL USERS:",
+            result.rows.length,
         );
 
         //////////////////////////////////////////////////////
@@ -84,10 +95,14 @@ const loginUser = async (req, res) => {
             );
 
             if (
-                normalizePhone(row.phone) === normalizedPhone
+                normalizePhone(row.phone) ===
+                normalizedPhone
             ) {
 
-                console.log("MATCH FOUND:", row.id);
+                console.log(
+                    "MATCH FOUND:",
+                    row.id,
+                );
 
                 user = row;
                 break;
@@ -97,6 +112,8 @@ const loginUser = async (req, res) => {
         }
 
         if (!user) {
+
+            console.log("USER NOT FOUND");
 
             return res.status(404).json({
 
@@ -112,6 +129,8 @@ const loginUser = async (req, res) => {
         // VERIFY PASSWORD
         //////////////////////////////////////////////////////
 
+        console.log("VERIFYING PASSWORD...");
+
         const passwordMatch =
             await passwordService.verify(
 
@@ -120,6 +139,11 @@ const loginUser = async (req, res) => {
                 user.password,
 
             );
+
+        console.log(
+            "PASSWORD MATCH:",
+            passwordMatch,
+        );
 
         if (!passwordMatch) {
 
@@ -134,11 +158,17 @@ const loginUser = async (req, res) => {
         }
 
         //////////////////////////////////////////////////////
-        // LOGIN
+        // CREATE LOGIN
         //////////////////////////////////////////////////////
+
+        console.log("GETTING DEVICE...");
 
         req.device =
             deviceService.getDevice(req);
+
+        console.log("DEVICE:", req.device);
+
+        console.log("CREATING LOGIN...");
 
         const login =
             await authService.createLogin({
@@ -149,7 +179,13 @@ const loginUser = async (req, res) => {
 
             });
 
+        console.log("LOGIN CREATED");
 
+        //////////////////////////////////////////////////////
+        // RESPONSE
+        //////////////////////////////////////////////////////
+
+        console.log("RETURNING SUCCESS");
 
         return res.json({
 
@@ -200,6 +236,7 @@ const loginUser = async (req, res) => {
 
     catch (error) {
 
+        console.error("LOGIN ERROR");
         console.error(error);
 
         return res.status(500).json({
