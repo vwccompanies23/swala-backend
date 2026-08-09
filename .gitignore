@@ -1,0 +1,11 @@
+# Environment
+.env
+
+# Firebase Admin SDK keys
+firebase/*.json
+
+# Node dependencies
+node_modules/
+
+# Logs
+*.log
