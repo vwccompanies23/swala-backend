@@ -67,12 +67,10 @@ const loginUser = async (req, res) => {
         // LOAD USERS
         //////////////////////////////////////////////////////
 
-        const result = await pool.query(
-            `
+        const result = await pool.query(`
             SELECT *
             FROM users
-            `
-        );
+        `);
 
         console.log(
             "TOTAL USERS:",
@@ -185,9 +183,7 @@ const loginUser = async (req, res) => {
         // RESPONSE
         //////////////////////////////////////////////////////
 
-        console.log("RETURNING SUCCESS");
-
-        return res.json({
+        const response = {
 
             success: true,
 
@@ -199,7 +195,11 @@ const loginUser = async (req, res) => {
 
             user: {
 
-                id: user.id,
+                // Integer ID for Flutter
+                id: user.app_id,
+
+                // UUID for backend
+                uuid: user.id,
 
                 full_name:
                     user.full_name,
@@ -230,11 +230,16 @@ const loginUser = async (req, res) => {
 
             },
 
-        });
+        };
 
-    }
+        console.log("LOGIN RESPONSE:");
+        console.log(
+            JSON.stringify(response, null, 2),
+        );
 
-    catch (error) {
+        return res.json(response);
+
+    } catch (error) {
 
         console.error("LOGIN ERROR");
         console.error(error);
